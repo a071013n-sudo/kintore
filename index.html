@@ -38,13 +38,13 @@
   .mode-tab:first-child{border-left:none;}
   .mode-tab.active{background:var(--accent); color:#1a1608;}
 
-  .dropzone{border:2px dashed var(--line); border-radius:4px; background:var(--panel); padding:32px 20px;
+  .dropzone{display:block; border:2px dashed var(--line); border-radius:4px; background:var(--panel); padding:32px 20px;
     text-align:center; cursor:pointer; transition:border-color .15s, background .15s;}
   .dropzone:hover,.dropzone.drag{border-color:var(--accent); background:var(--panel-2);}
   .dropzone .icon{font-size:30px; margin-bottom:8px; opacity:.8;}
   .dropzone .main{font-weight:700; font-size:15px;}
   .dropzone .hint{color:var(--muted); font-size:12.5px; margin-top:6px;}
-  input[type=file]{display:none;}
+  input[type=file]{position:absolute; width:1px; height:1px; opacity:0; overflow:hidden; z-index:-1;}
   .file-chosen{margin-top:10px; font-family:'Courier New',monospace; font-size:12.5px; color:var(--accent);}
 
   .controls{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
@@ -157,13 +157,14 @@
     <div class="wrap">
       <section>
         <p class="section-label">STEP 1 — 動画をアップロード</p>
-        <div class="dropzone" id="dropzone">
+        <label class="dropzone" id="dropzone" for="videoInput">
           <div class="icon">🎥</div>
           <div class="main">タップして動画を選択</div>
           <div class="hint">動画は端末内で処理され、切り出した数枚の静止画のみAIに送信されます</div>
           <div class="file-chosen" id="fileChosen"></div>
-        </div>
-        <input type="file" id="videoInput" accept="video/*">
+        </label>
+        <input type="file" id="videoInput" accept="video/*,.mp4,.webm,.mov,.m4v">
+        <div id="pickerFallback" style="display:none; margin-top:10px; font-size:12.5px; color:var(--warn); line-height:1.7;"></div>
       </section>
 
       <section>
@@ -633,7 +634,8 @@ upExercise.addEventListener('change', () => {
 updateViewTip(upExercise, $('upViewTip'));
 frameCount.addEventListener('input', () => { $('frameCountVal').textContent = frameCount.value; });
 
-$('dropzone').addEventListener('click', () => $('videoInput').click());
+// dropzone は <label for="videoInput"> なのでクリックはブラウザ任せ。
+// JS から .click() を呼ぶとサンドボックス内で拒否されたり二重に開くため行わない。
 $('dropzone').addEventListener('dragover', e => { e.preventDefault(); $('dropzone').classList.add('drag'); });
 $('dropzone').addEventListener('dragleave', () => $('dropzone').classList.remove('drag'));
 $('dropzone').addEventListener('drop', e => {
@@ -641,6 +643,25 @@ $('dropzone').addEventListener('drop', e => {
   if(e.dataTransfer.files?.[0]) handleVideo(e.dataTransfer.files[0]);
 });
 $('videoInput').addEventListener('change', e => { if(e.target.files[0]) handleVideo(e.target.files[0]); });
+
+// ファイル選択ダイアログが環境的に開けない場合の案内
+$('dropzone').addEventListener('click', () => {
+  let leftPage = false;
+  const mark = () => { leftPage = true; };
+  window.addEventListener('blur', mark, {once:true});
+  document.addEventListener('visibilitychange', mark, {once:true});
+  setTimeout(() => {
+    window.removeEventListener('blur', mark);
+    document.removeEventListener('visibilitychange', mark);
+    if(leftPage || $('videoInput').files.length) return;
+    $('pickerFallback').style.display = 'block';
+    $('pickerFallback').innerHTML =
+      '<b>ファイル選択が開きませんでした。</b>アプリ内プレビューの制限によるもので、ページ側では解決できません。<br><br>' +
+      '① スマホのブラウザ(Chrome / Safari)で claude.ai を開き、この会話からプレビューを表示する<br>' +
+      '② リアルタイムモードの「解析用シートを書き出す」で作った画像を、チャットに直接添付する<br><br>' +
+      '②が確実です。連番付きの1枚画像なので、そのまま送れば分析できます。';
+  }, 3000);
+});
 
 async function handleVideo(file){
   $('fileChosen').textContent = `選択中: ${file.name} (${(file.size/1048576).toFixed(1)}MB)`;
@@ -815,6 +836,7 @@ const recEnabled = $('recEnabled'), rtRec = $('rtRec'), rtRecTime = $('rtRecTime
 
 // 録画
 let recorder = null, recChunks = [], recStartAt = 0, recTimer = null, recUrl = null;
+let recBlob = null, recBaseName = '';
 
 const LM = {lSh:11, rSh:12, lEl:13, rEl:14, lWr:15, rWr:16, lHip:23, rHip:24, lKn:25, rKn:26, lAn:27, rAn:28};
 const JOINT_IDS = {
@@ -920,6 +942,7 @@ function finalizeRecording(){
   const blob = new Blob(recChunks, {type});
   recChunks = [];
   recorder = null;
+  recBlob = blob;
 
   if(recUrl) URL.revokeObjectURL(recUrl);
   recUrl = URL.createObjectURL(blob);
@@ -931,6 +954,7 @@ function finalizeRecording(){
   const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`
               + `-${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
   const filename = `${name}_${stamp}.${ext}`;
+  recBaseName = `${name}_${stamp}`;
   const mb = (blob.size / 1048576).toFixed(1);
   const secs = Math.round((Date.now() - recStartAt) / 1000);
 
@@ -942,17 +966,88 @@ function finalizeRecording(){
     <p style="font-family:'Courier New',monospace; font-size:12px; color:var(--muted); margin:10px 0 12px;">
       ${esc(filename)} · ${mb}MB · ${Math.floor(secs/60)}分${secs%60}秒
     </p>
-    <a id="recDl" href="${recUrl}" download="${esc(filename)}"
+    <a href="${recUrl}" download="${esc(filename)}"
        style="display:block; text-align:center; background:var(--accent); color:#1a1608; padding:14px;
               border-radius:3px; font-weight:900; text-decoration:none; letter-spacing:.04em;">
-      端末にダウンロード
+      動画をダウンロード
     </a>
+    <button id="sheetBtn" class="btn" style="margin-top:10px; background:var(--panel-2); color:var(--ink); border:1px solid var(--accent);">
+      解析用シートを書き出す(画像1枚)
+    </button>
     <p style="font-size:12.5px; color:var(--muted); line-height:1.8; margin-top:12px;">
-      この動画を Claude.ai で開いた「動画分析」タブにアップロードすると、AIコーチによる詳細レビューが受けられます。
-      ${ext === 'webm' ? '<br>※この端末では webm 形式で保存されます。' : ''}
+      <b style="color:var(--ink);">動画</b>: Claude.ai の「動画分析」タブにアップロードすると詳細レビューが受けられます。<br>
+      <b style="color:var(--ink);">解析用シート</b>: 連番付きの1枚画像です。ファイル選択がうまく動かない場合、
+      これを Claude のチャットに直接添付して「このフォームを見て」と伝えれば分析できます。
+      ${ext === 'webm' ? '<br>※この端末では動画は webm 形式で保存されます。' : ''}
     </p>`;
   rtSummary.appendChild(card);
+  card.querySelector('#sheetBtn').addEventListener('click', exportContactSheet);
   card.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function loadImg(src){
+  return new Promise((res, rej) => {
+    const i = new Image();
+    i.onload = () => res(i);
+    i.onerror = rej;
+    i.src = src;
+  });
+}
+
+/** 録画から連番付きのコンタクトシート(1枚のJPEG)を作る。
+    チャットに直接添付して分析を依頼できるようにするため。 */
+async function exportContactSheet(){
+  if(!recBlob) return;
+  const btn = document.getElementById('sheetBtn');
+  const orig = btn.textContent;
+  btn.textContent = '書き出し中…';
+  btn.disabled = true;
+  try{
+    const fr = await extractFrames(recBlob, 8);
+    const first = await loadImg(fr[0].dataUrl);
+    const cols = 2, rows = Math.ceil(fr.length / cols);
+    const cw = 460, ch = Math.round(cw * first.height / first.width);
+    const pad = 10, labelH = 28, headH = 46;
+
+    const cv = document.createElement('canvas');
+    cv.width  = cols * cw + pad * (cols + 1);
+    cv.height = headH + rows * (ch + labelH + pad) + pad;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = '#17181a';
+    ctx.fillRect(0, 0, cv.width, cv.height);
+
+    const k = activeKey();
+    ctx.fillStyle = '#e8b64a';
+    ctx.font = 'bold 24px sans-serif';
+    ctx.fillText(`${EXERCISES[k]?.label || 'トレーニング'} — フォーム解析用シート`, pad, 31);
+
+    for(let i = 0; i < fr.length; i++){
+      const img = await loadImg(fr[i].dataUrl);
+      const x = pad + (i % cols) * (cw + pad);
+      const y = headH + Math.floor(i / cols) * (ch + labelH + pad);
+      ctx.drawImage(img, x, y, cw, ch);
+      ctx.strokeStyle = '#38393e';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x, y, cw, ch);
+      ctx.fillStyle = '#e8b64a';
+      ctx.font = 'bold 19px monospace';
+      ctx.fillText(`#${i + 1}   ${fr[i].time.toFixed(1)}s`, x + 4, y + ch + 21);
+    }
+
+    const url = cv.toDataURL('image/jpeg', 0.85);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${recBaseName || 'form'}_sheet.jpg`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    btn.textContent = '✓ 書き出しました';
+    setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2500);
+  }catch(e){
+    console.error(e);
+    btn.textContent = '書き出しに失敗しました';
+    setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2500);
+  }
 }
 
 function activeKey(){ return rtExercise.value === 'auto' ? autoKey : rtExercise.value; }
