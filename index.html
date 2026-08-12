@@ -6,335 +6,123 @@
 <title>FORM CHECK — フォームチェッカー</title>
 <style>
   :root{
-    --bg:#17181a;
-    --panel:#212226;
-    --panel-2:#26282c;
-    --line:#38393e;
-    --ink:#ece7de;
-    --muted:#93959b;
-    --good:#7ba869;
-    --good-dim:#3a4a34;
-    --warn:#d1495b;
-    --warn-dim:#4a2a2f;
-    --accent:#e8b64a;
+    --bg:#17181a; --panel:#212226; --panel-2:#26282c; --line:#38393e;
+    --ink:#ece7de; --muted:#93959b;
+    --good:#7ba869; --warn:#d1495b; --accent:#e8b64a;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
-    background:
-      repeating-linear-gradient(115deg, rgba(255,255,255,0.015) 0 2px, transparent 2px 6px),
-      var(--bg);
+    background:repeating-linear-gradient(115deg, rgba(255,255,255,.015) 0 2px, transparent 2px 6px), var(--bg);
     color:var(--ink);
-    font-family:-apple-system, "Hiragino Sans", "Yu Gothic", "Segoe UI", sans-serif;
-    min-height:100vh;
-    padding:0 0 64px;
+    font-family:-apple-system,"Hiragino Sans","Yu Gothic","Segoe UI",sans-serif;
+    min-height:100vh; padding:0 0 64px;
   }
   .wrap{max-width:760px; margin:0 auto; padding:0 20px;}
 
-  /* ---- header / signature ---- */
-  header.top{
-    padding:36px 20px 28px;
-    border-bottom:3px solid var(--accent);
-    background:
-      linear-gradient(180deg, rgba(232,182,74,0.06), transparent);
-  }
-  .eyebrow{
-    font-family:'Courier New', monospace;
-    font-size:12px;
-    letter-spacing:0.28em;
-    color:var(--accent);
-    margin:0 0 10px;
-  }
-  h1{
-    margin:0;
-    font-size:clamp(30px, 6vw, 44px);
-    font-weight:900;
-    letter-spacing:-0.01em;
-    text-transform:uppercase;
-    line-height:0.95;
-  }
+  header.top{padding:34px 20px 26px; border-bottom:3px solid var(--accent);
+    background:linear-gradient(180deg, rgba(232,182,74,.06), transparent);}
+  .eyebrow{font-family:'Courier New',monospace; font-size:12px; letter-spacing:.28em; color:var(--accent); margin:0 0 10px;}
+  h1{margin:0; font-size:clamp(30px,6vw,44px); font-weight:900; letter-spacing:-.01em; text-transform:uppercase; line-height:.95;}
   h1 span{color:var(--muted); font-weight:700;}
-  .sub{
-    color:var(--muted);
-    font-size:14.5px;
-    margin:12px 0 0;
-    max-width:52ch;
-    line-height:1.7;
-  }
+  .sub{color:var(--muted); font-size:14.5px; margin:12px 0 0; max-width:52ch; line-height:1.7;}
 
-  section{margin-top:34px;}
-  .section-label{
-    font-family:'Courier New', monospace;
-    font-size:11.5px;
-    letter-spacing:0.2em;
-    color:var(--muted);
-    text-transform:uppercase;
-    margin:0 0 12px;
-    display:flex; align-items:center; gap:10px;
-  }
+  section{margin-top:30px;}
+  .section-label{font-family:'Courier New',monospace; font-size:11.5px; letter-spacing:.2em;
+    color:var(--muted); text-transform:uppercase; margin:0 0 12px; display:flex; align-items:center; gap:10px;}
   .section-label::after{content:""; flex:1; height:1px; background:var(--line);}
 
-  /* ---- upload zone ---- */
-  .dropzone{
-    border:2px dashed var(--line);
-    border-radius:4px;
-    background:var(--panel);
-    padding:34px 20px;
-    text-align:center;
-    cursor:pointer;
-    transition:border-color .15s, background .15s;
-  }
-  .dropzone:hover, .dropzone.drag{
-    border-color:var(--accent);
-    background:var(--panel-2);
-  }
+  .mode-tabs{display:flex; margin:20px 20px 0; border:1px solid var(--line); border-radius:4px; overflow:hidden;}
+  .mode-tab{flex:1; padding:12px 8px; background:var(--panel); color:var(--muted); border:none;
+    border-left:1px solid var(--line); font-weight:800; font-size:12.5px; cursor:pointer; font-family:inherit;}
+  .mode-tab:first-child{border-left:none;}
+  .mode-tab.active{background:var(--accent); color:#1a1608;}
+
+  .dropzone{border:2px dashed var(--line); border-radius:4px; background:var(--panel); padding:32px 20px;
+    text-align:center; cursor:pointer; transition:border-color .15s, background .15s;}
+  .dropzone:hover,.dropzone.drag{border-color:var(--accent); background:var(--panel-2);}
   .dropzone .icon{font-size:30px; margin-bottom:8px; opacity:.8;}
   .dropzone .main{font-weight:700; font-size:15px;}
   .dropzone .hint{color:var(--muted); font-size:12.5px; margin-top:6px;}
   input[type=file]{display:none;}
-  .file-chosen{
-    margin-top:10px;
-    font-family:'Courier New', monospace;
-    font-size:12.5px;
-    color:var(--accent);
-  }
+  .file-chosen{margin-top:10px; font-family:'Courier New',monospace; font-size:12.5px; color:var(--accent);}
 
-  /* ---- controls ---- */
-  .controls{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:14px;
-  }
-  @media (max-width:520px){ .controls{grid-template-columns:1fr;} }
-  .field label{
-    display:block;
-    font-size:11.5px;
-    letter-spacing:.1em;
-    color:var(--muted);
-    text-transform:uppercase;
-    margin-bottom:7px;
-  }
-  select, input[type=text]{
-    width:100%;
-    background:var(--panel);
-    border:1px solid var(--line);
-    color:var(--ink);
-    padding:10px 12px;
-    border-radius:3px;
-    font-size:14.5px;
-    font-family:inherit;
-  }
-  select:focus, input[type=text]:focus{outline:2px solid var(--accent); outline-offset:1px;}
+  .controls{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media (max-width:520px){.controls{grid-template-columns:1fr;}}
+  .field label{display:block; font-size:11.5px; letter-spacing:.1em; color:var(--muted);
+    text-transform:uppercase; margin-bottom:7px;}
+  select,input[type=text]{width:100%; background:var(--panel); border:1px solid var(--line); color:var(--ink);
+    padding:10px 12px; border-radius:3px; font-size:14.5px; font-family:inherit;}
+  select:focus,input[type=text]:focus{outline:2px solid var(--accent); outline-offset:1px;}
   .range-row{display:flex; align-items:center; gap:12px;}
   input[type=range]{flex:1; accent-color:var(--accent);}
-  .range-val{
-    font-family:'Courier New', monospace;
-    color:var(--accent);
-    font-weight:700;
-    min-width:38px;
-    text-align:right;
-  }
+  .range-val{font-family:'Courier New',monospace; color:var(--accent); font-weight:700; min-width:38px; text-align:right;}
+  .view-tip{grid-column:1/-1; font-size:12.5px; color:var(--accent); background:var(--panel-2);
+    border-left:2px solid var(--accent); padding:9px 12px; border-radius:0 3px 3px 0; line-height:1.6;}
+  .check-inline{display:flex; align-items:center; gap:9px; cursor:pointer;}
+  .check-inline input{width:auto; accent-color:var(--accent); transform:scale(1.2);}
+  .check-inline span{text-transform:none; letter-spacing:0; font-size:13.5px; color:var(--ink); font-weight:400;}
 
-  /* ---- filmstrip (signature element) ---- */
-  .filmstrip-outer{
-    background:#0f1011;
-    border-top:8px dotted #3a3b3f;
-    border-bottom:8px dotted #3a3b3f;
-    padding:14px 0;
-    overflow-x:auto;
-  }
-  .filmstrip{
-    display:flex;
-    gap:8px;
-    padding:0 20px;
-  }
-  .frame{
-    position:relative;
-    flex:0 0 auto;
-    width:110px;
-  }
-  .frame img{
-    width:100%;
-    display:block;
-    border-radius:2px;
-    border:3px solid transparent;
-  }
-  .frame.flag-good img{border-color:var(--good);}
+  .filmstrip-outer{background:#0f1011; border-top:8px dotted #3a3b3f; border-bottom:8px dotted #3a3b3f;
+    padding:14px 0; overflow-x:auto;}
+  .filmstrip{display:flex; gap:8px; padding:0 20px;}
+  .frame{position:relative; flex:0 0 auto; width:110px;}
+  .frame img{width:100%; display:block; border-radius:2px; border:3px solid transparent;}
   .frame.flag-warn img{border-color:var(--warn);}
-  .frame .idx{
-    position:absolute; top:4px; left:4px;
-    background:rgba(0,0,0,.65);
-    color:var(--ink);
-    font-family:'Courier New', monospace;
-    font-size:10.5px;
-    padding:1px 5px;
-    border-radius:2px;
-  }
-  .frame .t{
-    text-align:center;
-    font-family:'Courier New', monospace;
-    font-size:10px;
-    color:var(--muted);
-    margin-top:4px;
-  }
-  .empty-note{
-    color:var(--muted);
-    font-size:13px;
-    padding:20px;
-    text-align:center;
-  }
+  .frame.flag-good img{border-color:var(--good);}
+  .frame .idx{position:absolute; top:4px; left:4px; background:rgba(0,0,0,.65); color:var(--ink);
+    font-family:'Courier New',monospace; font-size:10.5px; padding:1px 5px; border-radius:2px;}
+  .frame .t{text-align:center; font-family:'Courier New',monospace; font-size:10px; color:var(--muted); margin-top:4px;}
+  .empty-note{color:var(--muted); font-size:13px; padding:20px; text-align:center;}
 
-  /* ---- analyze button ---- */
-  .analyze-btn{
-    width:100%;
-    margin-top:22px;
-    padding:16px;
-    background:var(--accent);
-    color:#1a1608;
-    border:none;
-    border-radius:3px;
-    font-size:15px;
-    font-weight:900;
-    letter-spacing:.06em;
-    text-transform:uppercase;
-    cursor:pointer;
-    transition:filter .12s, transform .05s;
-  }
-  .analyze-btn:hover:not(:disabled){filter:brightness(1.08);}
-  .analyze-btn:active:not(:disabled){transform:scale(.995);}
-  .analyze-btn:disabled{
-    background:var(--panel-2);
-    color:var(--muted);
-    cursor:not-allowed;
-  }
+  .btn{width:100%; margin-top:20px; padding:16px; background:var(--accent); color:#1a1608; border:none;
+    border-radius:3px; font-size:15px; font-weight:900; letter-spacing:.06em; cursor:pointer;
+    font-family:inherit; transition:filter .12s, transform .05s;}
+  .btn:hover:not(:disabled){filter:brightness(1.08);}
+  .btn:active:not(:disabled){transform:scale(.995);}
+  .btn:disabled{background:var(--panel-2); color:var(--muted); cursor:not-allowed;}
 
-  /* ---- results ---- */
-  .card{
-    background:var(--panel);
-    border:1px solid var(--line);
-    border-radius:4px;
-    padding:18px 20px;
-    margin-bottom:12px;
-  }
-  .card h3{
-    margin:0 0 10px;
-    font-size:12px;
-    letter-spacing:.14em;
-    text-transform:uppercase;
-    display:flex; align-items:center; gap:8px;
-  }
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:4px; padding:18px 20px; margin-bottom:12px;}
+  .card h3{margin:0 0 10px; font-size:12px; letter-spacing:.14em; text-transform:uppercase;
+    display:flex; align-items:center; gap:8px;}
   .dot{width:8px; height:8px; border-radius:50%; display:inline-block;}
   .card.overall{border-left:3px solid var(--accent);}
   .card.good{border-left:3px solid var(--good);}
   .card.warn{border-left:3px solid var(--warn);}
   .card ul{margin:0; padding-left:18px; line-height:1.9; font-size:14.5px;}
   .card p{margin:0; line-height:1.8; font-size:14.5px;}
-  .chip{
-    display:inline-block;
-    font-family:'Courier New', monospace;
-    font-size:11px;
-    background:var(--panel-2);
-    border:1px solid var(--line);
-    color:var(--accent);
-    padding:0 6px;
-    border-radius:2px;
-    margin-left:6px;
-    cursor:pointer;
-  }
-  .disclaimer{
-    color:var(--muted);
-    font-size:12px;
-    line-height:1.8;
-    padding:14px 4px 0;
-    border-top:1px solid var(--line);
-    margin-top:6px;
-  }
-  .status{
-    text-align:center;
-    color:var(--muted);
-    font-family:'Courier New', monospace;
-    font-size:12.5px;
-    padding:14px;
-  }
-  .status.err{color:var(--warn);}
+  .chip{display:inline-block; font-family:'Courier New',monospace; font-size:11px; background:var(--panel-2);
+    border:1px solid var(--line); color:var(--accent); padding:0 6px; border-radius:2px; margin-left:6px; cursor:pointer;}
+  .detected{font-family:'Courier New',monospace; font-size:12px; color:var(--accent); margin-bottom:8px;}
+  .disclaimer{color:var(--muted); font-size:12px; line-height:1.8; padding:14px 4px 0;
+    border-top:1px solid var(--line); margin-top:6px;}
+  .status{text-align:center; color:var(--muted); font-family:'Courier New',monospace; font-size:12.5px; padding:14px; line-height:1.8;}
+  .status.err{color:var(--warn); text-align:left;}
 
-  @media (prefers-reduced-motion: no-preference){
-    .card{animation:rise .28s ease both;}
-  }
-  @keyframes rise{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
-
-  /* ---- mode tabs ---- */
-  .mode-tabs{
-    display:flex;
-    margin:20px 20px 0;
-    border:1px solid var(--line);
-    border-radius:4px;
-    overflow:hidden;
-  }
-  .mode-tab{
-    flex:1;
-    padding:12px 8px;
-    background:var(--panel);
-    color:var(--muted);
-    border:none;
-    border-left:1px solid var(--line);
-    font-weight:800;
-    font-size:12.5px;
-    letter-spacing:.04em;
-    cursor:pointer;
-    font-family:inherit;
-  }
-  .mode-tab:first-child{border-left:none;}
-  .mode-tab.active{background:var(--accent); color:#1a1608;}
-
-  /* ---- realtime stage ---- */
-  .rt-stage{
-    position:relative;
-    width:100%;
-    background:#000;
-    overflow:hidden;
-    border-top:1px solid var(--line);
-    border-bottom:1px solid var(--line);
-  }
+  .rt-stage{position:relative; width:100%; background:#000; overflow:hidden;
+    border-top:1px solid var(--line); border-bottom:1px solid var(--line);}
   .rt-stage video{width:100%; display:block;}
   .rt-stage canvas{position:absolute; top:0; left:0; width:100%; height:100%;}
-  .rt-banner{
-    position:absolute; top:14px; left:50%; transform:translateX(-50%);
-    padding:9px 18px; border-radius:4px;
-    font-weight:900; font-size:14px; letter-spacing:.03em;
-    z-index:5; white-space:nowrap;
-  }
+  .rt-banner{position:absolute; top:14px; left:50%; transform:translateX(-50%); padding:9px 18px;
+    border-radius:4px; font-weight:900; font-size:14px; z-index:5; white-space:nowrap;}
   .rt-banner.good{background:var(--good); color:#0e1a0a;}
   .rt-banner.warn{background:var(--warn); color:#fff;}
-  .rt-rep{
-    position:absolute; bottom:12px; right:12px;
-    background:rgba(0,0,0,.65); color:var(--accent);
-    font-family:'Courier New', monospace; font-size:13px;
-    padding:5px 10px; border-radius:3px; z-index:5;
-  }
-  .telemetry-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;}
+  .rt-tag{position:absolute; background:rgba(0,0,0,.65); color:var(--accent); font-family:'Courier New',monospace;
+    font-size:13px; padding:5px 10px; border-radius:3px; z-index:5;}
+  .rt-tag.rep{bottom:12px; right:12px;}
+  .rt-tag.detected{bottom:12px; left:12px;}
+  .rt-countdown{position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.55); z-index:10; font-family:'Courier New',monospace;
+    font-size:min(22vw,110px); font-weight:900; color:var(--accent);}
+  .rt-countdown .cd-sub{position:absolute; bottom:14%; font-size:14px; font-weight:700;
+    letter-spacing:.06em; color:var(--ink); text-align:center; padding:0 20px; line-height:1.6;}
+  .telemetry-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
   .telemetry-item{text-align:center; background:var(--panel-2); border-radius:3px; padding:10px 4px;}
-  .telemetry-item .val{font-family:'Courier New', monospace; font-size:19px; font-weight:700; color:var(--accent);}
-  .telemetry-item .lbl{font-size:10px; color:var(--muted); letter-spacing:.06em; text-transform:uppercase; margin-top:3px;}
-  .rt-countdown{
-    position:absolute; inset:0;
-    display:none; align-items:center; justify-content:center;
-    background:rgba(0,0,0,.5);
-    z-index:10;
-    font-family:'Courier New', monospace;
-    font-size:min(22vw, 110px);
-    font-weight:900;
-    color:var(--accent);
-    letter-spacing:.02em;
-  }
-  .rt-countdown .cd-sub{
-    position:absolute;
-    bottom:14%;
-    font-size:14px;
-    font-weight:700;
-    letter-spacing:.08em;
-    color:var(--ink);
-  }
+  .telemetry-item .val{font-family:'Courier New',monospace; font-size:19px; font-weight:700; color:var(--accent);}
+  .telemetry-item .lbl{font-size:10px; color:var(--muted); letter-spacing:.06em; margin-top:3px;}
+
+  @media (prefers-reduced-motion: no-preference){.card{animation:rise .28s ease both;}}
+  @keyframes rise{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
 </style>
 </head>
 <body>
@@ -342,7 +130,7 @@
   <header class="top">
     <p class="eyebrow">FORM CHECK LAB</p>
     <h1>フォーム<br><span>チェッカー</span></h1>
-    <p class="sub">トレーニング動画をアップロードすると、フレームを自動で切り出してAIコーチがフォームを確認します。スクワット・デッドリフトなど、動作中のポイントをチェック。</p>
+    <p class="sub">トレーニング動画をAIコーチが分析します。撮影済み動画の詳細レビューと、カメラを使ったその場でのリアルタイム指導の2モード。</p>
   </header>
 
   <div class="mode-tabs">
@@ -350,143 +138,115 @@
     <button class="mode-tab" data-mode="realtime">⚡ リアルタイム</button>
   </div>
 
+  <!-- ============ UPLOAD MODE ============ -->
   <div id="uploadMode">
-  <div class="wrap" style="padding:0 20px;">
-    <section>
-      <p class="section-label">STEP 1 — 動画をアップロード</p>
-      <div class="dropzone" id="dropzone">
-        <div class="icon">🎥</div>
-        <div class="main">タップして動画を選択</div>
-        <div class="hint">スマホで撮影したトレーニング動画(mp4等) / 端末内で処理され、選んだフレームのみAIに送信されます</div>
-        <div class="file-chosen" id="fileChosen"></div>
-      </div>
-      <input type="file" id="videoInput" accept="video/*">
-    </section>
+    <div class="wrap">
+      <section>
+        <p class="section-label">STEP 1 — 動画をアップロード</p>
+        <div class="dropzone" id="dropzone">
+          <div class="icon">🎥</div>
+          <div class="main">タップして動画を選択</div>
+          <div class="hint">動画は端末内で処理され、切り出した数枚の静止画のみAIに送信されます</div>
+          <div class="file-chosen" id="fileChosen"></div>
+        </div>
+        <input type="file" id="videoInput" accept="video/*">
+      </section>
 
-    <section>
-      <p class="section-label">STEP 2 — 種目と設定</p>
-      <div class="controls">
-        <div class="field">
-          <label for="exercise">種目</label>
-          <select id="exercise">
-            <option value="auto" selected>自動判定(AIにおまかせ)</option>
-            <option value="squat">スクワット</option>
-            <option value="deadlift">デッドリフト</option>
-            <option value="bench">ベンチプレス</option>
-            <option value="overhead_press">オーバーヘッドプレス</option>
-            <option value="pulldown">懸垂 / ラットプルダウン</option>
-            <option value="row">ベントオーバーロウ</option>
-            <option value="hip_thrust">ヒップスラスト</option>
-            <option value="lunge">ランジ</option>
-            <option value="leg_press">レッグプレス</option>
-            <option value="curl">バーベルカール</option>
-            <option value="db_shoulder_press">ダンベルショルダープレス</option>
-            <option value="lateral_raise">サイドレイズ</option>
-            <option value="db_fly">ダンベルフライ</option>
-            <option value="db_row">ダンベルロウ(片手)</option>
-            <option value="db_curl">ダンベルカール</option>
-            <option value="goblet_squat">ゴブレットスクワット</option>
-            <option value="db_rdl">ダンベルルーマニアンデッドリフト</option>
-            <option value="step_up">ダンベルステップアップ</option>
-            <option value="incline_db_press">インクラインダンベルプレス</option>
-            <option value="shrug">ダンベルシュラッグ</option>
-            <option value="kickback">ダンベルキックバック</option>
-            <option value="rear_delt_fly">リアレイズ</option>
-            <option value="arnold_press">アーノルドプレス</option>
-            <option value="pullover">ダンベルプルオーバー</option>
-            <option value="bulgarian_split_squat">ブルガリアンスクワット</option>
-            <option value="push_up">プッシュアップ</option>
-            <option value="leg_curl">レッグカール</option>
-            <option value="leg_extension">レッグエクステンション</option>
-            <option value="smith_squat">スミスマシンスクワット</option>
-            <option value="hip_abduction">ヒップアブダクション</option>
-            <option value="cable_crossover">ケーブルクロスオーバー</option>
-            <option value="triceps_pushdown">トライセプスプレスダウン</option>
-            <option value="face_pull">フェイスプル</option>
-            <option value="other">その他(自由入力)</option>
-          </select>
-        </div>
-        <div class="field" id="otherField" style="display:none;">
-          <label for="otherName">種目名</label>
-          <input type="text" id="otherName" placeholder="例: ショルダープレス">
-        </div>
-        <div class="field" style="grid-column:1/-1;">
-          <label for="frameCount">抽出フレーム数</label>
-          <div class="range-row">
-            <input type="range" id="frameCount" min="6" max="12" value="8">
-            <span class="range-val" id="frameCountVal">8</span>
+      <section>
+        <p class="section-label">STEP 2 — 種目と設定</p>
+        <div class="controls">
+          <div class="field">
+            <label for="upExercise">種目</label>
+            <select id="upExercise"></select>
           </div>
+          <div class="field" id="upOtherField" style="display:none;">
+            <label for="upOtherName">種目名</label>
+            <input type="text" id="upOtherName" placeholder="例: ケーブルプルスルー">
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label for="frameCount">抽出フレーム数</label>
+            <div class="range-row">
+              <input type="range" id="frameCount" min="6" max="12" value="8">
+              <span class="range-val" id="frameCountVal">8</span>
+            </div>
+          </div>
+          <div class="view-tip" id="upViewTip"></div>
         </div>
+      </section>
+
+      <section><p class="section-label">STEP 3 — 抽出フレーム</p></section>
+    </div>
+
+    <div class="filmstrip-outer">
+      <div class="filmstrip" id="filmstrip">
+        <div class="empty-note">動画を選択するとここにフレームが並びます</div>
       </div>
-    </section>
+    </div>
 
-    <section>
-      <p class="section-label">STEP 3 — 抽出フレーム</p>
-    </section>
-  </div>
-
-  <div class="filmstrip-outer">
-    <div class="filmstrip" id="filmstrip">
-      <div class="empty-note">動画を選択するとここにフレームが並びます</div>
+    <div class="wrap">
+      <button class="btn" id="analyzeBtn" disabled>フォームを分析する</button>
+      <div id="upStatus"></div>
+      <section id="upResults"></section>
     </div>
   </div>
 
-  <div class="wrap" style="padding:0 20px;">
-    <button class="analyze-btn" id="analyzeBtn" disabled>フォームを分析する</button>
-    <div id="statusArea"></div>
-    <section id="results"></section>
-  </div>
-  </div>
-  <!-- /uploadMode -->
-
+  <!-- ============ REALTIME MODE ============ -->
   <div id="realtimeMode" style="display:none;">
-    <div class="wrap" style="padding:0 20px;">
-      <section style="margin-top:28px;">
+    <div class="wrap">
+      <section>
         <p class="section-label">SETUP — 種目とカメラ</p>
         <div class="controls">
           <div class="field">
             <label for="rtExercise">種目</label>
-            <select id="rtExercise">
-              <option value="auto" selected>自動判定(AIにおまかせ)</option>
-            </select>
+            <select id="rtExercise"></select>
           </div>
           <div class="field">
             <label for="rtView">カメラの向き</label>
             <select id="rtView">
-              <option value="front">正面</option>
               <option value="side">真横</option>
+              <option value="front">正面</option>
             </select>
           </div>
-          <div class="field" style="grid-column:1/-1;">
+          <div class="field">
             <label for="rtFacing">使用カメラ</label>
             <select id="rtFacing">
-              <option value="user">インカメラ(自撮り)</option>
               <option value="environment">アウトカメラ(三脚設置向け)</option>
+              <option value="user">インカメラ(自撮り)</option>
             </select>
           </div>
+          <div class="field">
+            <label for="rtCountdownSec">開始までの秒数</label>
+            <div class="range-row">
+              <input type="range" id="rtCountdownSec" min="3" max="30" step="1" value="10">
+              <span class="range-val" id="rtCountdownSecVal">10</span>
+            </div>
+          </div>
+          <div class="view-tip" id="rtViewTip"></div>
           <div class="field" style="grid-column:1/-1;">
-            <label style="display:flex; align-items:center; gap:9px; cursor:pointer; margin-top:2px;">
-              <input type="checkbox" id="ttsEnabled" checked style="width:auto; accent-color:var(--accent); transform:scale(1.2);">
-              <span style="text-transform:none; letter-spacing:0; font-size:13.5px; color:var(--ink); font-weight:400;">音声で読み上げる(画面を見られない撮影角度のとき)</span>
+            <label class="check-inline">
+              <input type="checkbox" id="ttsEnabled" checked>
+              <span>音声で読み上げる(画面を見られない撮影角度のとき)</span>
             </label>
           </div>
         </div>
       </section>
     </div>
 
-    <section style="margin-top:20px;">
-      <div class="rt-stage" id="rtStageEl">
+    <section>
+      <div class="rt-stage">
         <video id="rtVideo" playsinline muted></video>
         <canvas id="rtCanvas"></canvas>
         <div class="rt-banner" id="rtBanner" style="display:none;"></div>
-        <div class="rt-rep" id="rtRep" style="display:none;">レップ: 0</div>
-        <div class="rt-rep" id="rtDetectedLabel" style="display:none; left:12px; right:auto;">判定中…</div>
-        <div class="rt-countdown" id="rtCountdown"><span id="rtCountdownNum"></span><span class="cd-sub" id="rtCountdownSub"></span></div>
+        <div class="rt-tag rep" id="rtRep" style="display:none;">レップ: 0</div>
+        <div class="rt-tag detected" id="rtDetected" style="display:none;">判定中…</div>
+        <div class="rt-countdown" id="rtCountdown">
+          <span id="rtCdNum"></span><span class="cd-sub" id="rtCdSub"></span>
+        </div>
       </div>
     </section>
 
-    <div class="wrap" style="padding:0 20px;">
-      <button class="analyze-btn" id="rtStartBtn">カメラを開始する</button>
+    <div class="wrap">
+      <button class="btn" id="rtStartBtn">カメラを開始する</button>
       <div id="rtStatus"></div>
 
       <div class="card overall" id="rtTelemetry" style="display:none; margin-top:16px;">
@@ -494,74 +254,320 @@
         <div class="telemetry-grid" id="telemetryGrid"></div>
       </div>
 
-      <div class="card" id="rtCoachCard" style="display:none; margin-top:12px; border-left:3px solid var(--accent);">
+      <div class="card" id="rtCoachCard" style="display:none; border-left:3px solid var(--accent);">
         <h3><span class="dot" style="background:var(--accent)"></span>AIコーチ</h3>
-        <p id="rtCoachText" style="white-space:pre-wrap;">準備中…</p>
+        <p id="rtCoachText">準備中…</p>
       </div>
 
-      <p class="disclaimer" style="margin-top:14px;">
-        カメラ映像は解析のためだけに使われ、外部に送信されるのはAIコメント用に数秒おきに切り出す1枚の静止画のみです。数値アラートは簡易的な目安であり、正確な医学的判断ではありません。ブラウザのプレビュー内でカメラが起動しない場合は、ダウンロードしたHTMLファイルを直接ブラウザで開いてお試しください。
+      <div id="rtSummary"></div>
+
+      <p class="disclaimer">
+        カメラ映像は端末内で解析され、外部に送信されるのは数秒おきに切り出す1枚の静止画のみです。
+        角度・レップ数の判定は2D映像からの簡易的な目安であり、医学的な評価ではありません。
       </p>
     </div>
   </div>
-  <!-- /realtimeMode -->
 </div>
 
 <script>
-const dropzone = document.getElementById('dropzone');
-const videoInput = document.getElementById('videoInput');
-const fileChosen = document.getElementById('fileChosen');
-const exerciseSel = document.getElementById('exercise');
-const otherField = document.getElementById('otherField');
-const otherName = document.getElementById('otherName');
-const frameCountInput = document.getElementById('frameCount');
-const frameCountVal = document.getElementById('frameCountVal');
-const filmstrip = document.getElementById('filmstrip');
-const analyzeBtn = document.getElementById('analyzeBtn');
-const statusArea = document.getElementById('statusArea');
-const resultsEl = document.getElementById('results');
-
-let extractedFrames = []; // {time, dataUrl}
-
-dropzone.addEventListener('click', () => videoInput.click());
-dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
-dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
-dropzone.addEventListener('drop', e => {
-  e.preventDefault();
-  dropzone.classList.remove('drag');
-  if(e.dataTransfer.files && e.dataTransfer.files[0]){
-    videoInput.files = e.dataTransfer.files;
-    handleVideoFile(e.dataTransfer.files[0]);
+/* =========================================================
+   1. 種目データ (ラベル・チェック観点・推奨アングル・判定ルール)
+   rt: joint  … 判定に使う関節
+       dir     … flex=動作で角度が小さくなる / extend=大きくなる
+       rest    … 安静姿勢とみなす角度
+       trigger … 動作開始とみなす角度
+       peakGood/peakPoor … 可動域評価のしきい値
+       valgus  … 正面撮影時にニーイン検知を行うか
+   ========================================================= */
+const EXERCISES = {
+  squat: {
+    label:'スクワット', view:'真横(深さ・背中の丸まり) / 正面(膝の向き)',
+    hints:'開始姿勢: 足幅は肩幅よりやや広め、つま先はやや外向き、胸を張り目線は正面 / しゃがみ: 股関節と膝が同時に曲がり始めているか、膝が内側に入っていないか、上体が急に前傾していないか / 最下点: 股関節が膝より下まで下がっているか、かかとが浮いていないか、背中が丸まっていないか / 立ち上がり: お尻だけ先に上がる「グッドモーニング化」をしていないか / リスク: 腰の丸まり・反りすぎ、膝の内側崩れ',
+    rt:{joint:'knee', dir:'flex', rest:155, trigger:140, peakGood:100, peakPoor:120, valgus:true}
+  },
+  goblet_squat: {
+    label:'ゴブレットスクワット', view:'真横(深さ) / 正面(膝の向き)',
+    hints:'開始姿勢: ダンベルを胸の前で保持し、胸を張り上体が起きているか / しゃがみ: 膝が内側に入っていないか、肘が内ももに触れる程度まで深さが取れているか / リスク: 上体が前に突っ込む、かかとが浮く',
+    rt:{joint:'knee', dir:'flex', rest:155, trigger:140, peakGood:100, peakPoor:120, valgus:true}
+  },
+  smith_squat: {
+    label:'スミスマシンスクワット', view:'真横(深さ) / 正面(膝の向き)',
+    hints:'開始姿勢: バーの位置が僧帽筋上部〜肩甲骨あたりに乗っているか、足の位置がバーの軌道に対して適切か / しゃがみ: 膝が内側に入っていないか、深さ / 最下点: かかとの浮き、背中の丸まり / リスク: 軌道が固定されている分、足位置がズレると膝や腰に負担が集中',
+    rt:{joint:'knee', dir:'flex', rest:155, trigger:140, peakGood:100, peakPoor:120, valgus:true}
+  },
+  bulgarian_split_squat: {
+    label:'ブルガリアンスクワット', view:'真横(深さ・上体角度) / 正面(膝の向き・左右ブレ)',
+    hints:'開始姿勢: 後ろ足の甲が台に安定して乗っているか、前後の足の間隔が適切か / しゃがみ: 前膝が内側に入っていないか、上体が前傾しすぎていないか、後ろ膝がまっすぐ下に下りているか / リスク: バランスを崩して横方向にブレる、前膝のつま先超えすぎ',
+    rt:{joint:'knee', dir:'flex', rest:155, trigger:140, peakGood:100, peakPoor:120, valgus:true}
+  },
+  lunge: {
+    label:'ランジ', view:'真横(深さ・上体角度) / 正面(膝の向き)',
+    hints:'開始姿勢: 足の踏み出し幅、上体がまっすぐ保てているか / 沈み込み: 前膝がつま先より大きく前に出過ぎていないか、後ろ膝がまっすぐ下に下りているか / 最下点: 前膝の内外側ブレ、上体の前傾しすぎ / リスク: 体幹が横に流れる、前膝の内側崩れ',
+    rt:{joint:'knee', dir:'flex', rest:155, trigger:140, peakGood:100, peakPoor:120, valgus:true}
+  },
+  step_up: {
+    label:'ダンベルステップアップ', view:'真横(踏み込み) / 正面(膝の向き)',
+    hints:'開始姿勢: 踏み台に乗せる足の位置、上体がまっすぐか / 踏み込み: 反動をつけて後ろ足で蹴っていないか、踏み台に乗せた膝が内側に入っていないか / リスク: 着地時のバランス不安定、上体の前傾しすぎ',
+    rt:{joint:'knee', dir:'flex', rest:155, trigger:140, peakGood:110, peakPoor:130, valgus:true}
+  },
+  deadlift: {
+    label:'デッドリフト', view:'真横(必須。バー軌道と背中を見る)',
+    hints:'開始姿勢: バーが足の中央〜すね付近にあるか、背中がニュートラルで肩がバーの真上〜やや前にあるか / 引き上げ: 股関節から動き出せているか(ヒップヒンジ)、バーが体に沿って一直線に上がっているか、腰が先に伸び切っていないか / トップ: 股関節・膝が同時にロックアウトできているか、反り腰になっていないか / 下ろす: 同じ軌道でコントロールできているか / リスク: 腰椎の過度な屈曲、バーが体から離れる軌道',
+    rt:{joint:'hip', dir:'flex', rest:155, trigger:140, peakGood:70, peakPoor:100, valgus:false}
+  },
+  db_rdl: {
+    label:'ダンベルルーマニアンデッドリフト', view:'真横(必須)',
+    hints:'開始姿勢: 背中がニュートラルで、膝を軽く曲げた状態から始められているか / 下ろす: 股関節から折れているか(ヒップヒンジ)、ダンベルが脚に沿って動いているか / 終端: ハムストリングスの張りを感じる範囲で背中が丸まっていないか / リスク: 膝だけを曲げてスクワット化する、腰が丸まる',
+    rt:{joint:'hip', dir:'flex', rest:155, trigger:140, peakGood:80, peakPoor:110, valgus:false}
+  },
+  hip_thrust: {
+    label:'ヒップスラスト', view:'真横(必須)',
+    hints:'開始姿勢: 肩甲骨が台の安定した位置に設置されているか、膝が90°になる足の位置か / 挙上: 骨盤を後傾させながら股関節を伸展できているか / トップ: 体が一直線か、腰を反りすぎていないか、臀部が締まっているか / リスク: 腰椎で反ってしまい股関節が主働になっていない、膝が外や内に流れる',
+    rt:{joint:'hip', dir:'flex', rest:155, trigger:140, peakGood:80, peakPoor:110, valgus:false}
+  },
+  bench: {
+    label:'ベンチプレス', view:'真横(バーパスと深さ) / 斜め上(肘の開き)',
+    hints:'開始姿勢: 肩甲骨が寄って安定しているか、足が床に接地しているか / 下ろす: 肘の軌道が体側から適度に開いているか、バーがみぞおち〜鎖骨あたりに向かっているか / 最下点: 胸にバーが軽く触れる深さか、肩がすくんでいないか / 挙上: バーパスが一直線か、左右均等か / リスク: 腰の反りすぎ、肩がすくんで前方に出る',
+    rt:{joint:'elbow', dir:'flex', rest:155, trigger:140, peakGood:80, peakPoor:110, valgus:false}
+  },
+  incline_db_press: {
+    label:'インクラインダンベルプレス', view:'真横 / 斜め前(左右差)',
+    hints:'開始姿勢: ベンチの角度(30〜45度目安)、肩甲骨が寄っているか / 下ろす: 肘の軌道と角度、胸上部に向かう軌道か / リスク: 肩がすくむ、腰の反りすぎ',
+    rt:{joint:'elbow', dir:'flex', rest:155, trigger:140, peakGood:80, peakPoor:110, valgus:false}
+  },
+  push_up: {
+    label:'プッシュアップ', view:'真横(必須。体幹の一直線を見る)',
+    hints:'開始姿勢: 手の位置(肩幅よりやや広め)、体が頭からかかとまで一直線か / 下ろす: 体幹が一直線に保てているか(腰が落ちる/上がりすぎていないか)、肘の軌道が体側から45度程度か / 最下点: 胸が床に近づく深さまで下りているか / リスク: 首が前に出る、腰が反る・落ちる',
+    rt:{joint:'elbow', dir:'flex', rest:155, trigger:140, peakGood:80, peakPoor:110, valgus:false}
+  },
+  overhead_press: {
+    label:'オーバーヘッドプレス', view:'真横(バー軌道) / 正面(左右差)',
+    hints:'開始姿勢: グリップ幅と手首の角度、体幹が締まっているか / 挙上: バーが顔の近くを通り頭上まで一直線に上がっているか、肘の軌道が安定しているか / トップ: 肩がすくまずロックアウトできているか、頭が前に出すぎていないか / リスク: 体幹が緩んで反り腰、肘が開きすぎて肩に負担',
+    rt:{joint:'elbow', dir:'extend', rest:110, trigger:130, peakGood:160, peakPoor:140, valgus:false}
+  },
+  db_shoulder_press: {
+    label:'ダンベルショルダープレス', view:'正面(左右差) / 真横(反り腰)',
+    hints:'開始姿勢: 左右のダンベルの高さが揃っているか / 挙上: 左右対称の軌道で頭上まで上がっているか、反り腰になっていないか / リスク: 肘が真横に開きすぎて肩関節に負担、体幹の不安定さによる左右差',
+    rt:{joint:'elbow', dir:'extend', rest:110, trigger:130, peakGood:160, peakPoor:140, valgus:false}
+  },
+  arnold_press: {
+    label:'アーノルドプレス', view:'正面(左右差・回旋) / 真横(反り腰)',
+    hints:'開始姿勢: ダンベルを顔の前で構え、手のひらが体側を向いているか / 挙上: 回旋と挙上のタイミングが揃っているか、左右対称に挙げられているか / リスク: 反り腰、肩のすくみ',
+    rt:{joint:'elbow', dir:'extend', rest:110, trigger:130, peakGood:160, peakPoor:140, valgus:false}
+  },
+  pulldown: {
+    label:'懸垂 / ラットプルダウン', view:'正面 or 斜め前(肩甲骨の動き)',
+    hints:'開始姿勢: グリップ幅、胸を張れているか / 引く: 肩甲骨を下制・内転させてから肘を引けているか、反動(体を後ろに反らせる)を使いすぎていないか / 最下点: バーが鎖骨〜胸上部あたりに収まっているか / 戻す: 肩がすくまずコントロールできているか / リスク: 首をすくめる、腕だけで引いて背中が使えていない',
+    rt:{joint:'elbow', dir:'flex', rest:150, trigger:130, peakGood:75, peakPoor:110, valgus:false}
+  },
+  row: {
+    label:'ベントオーバーロウ', view:'真横(必須。上体角度と背中)',
+    hints:'開始姿勢: 上体の前傾角度が一定に保てるか、背中がニュートラルか / 引く: 肘が体側に沿って後方へ引けているか、肩甲骨を寄せられているか / リスク: 反動(体を起こして引く)、腰が丸まる、肩がすくむ',
+    rt:{joint:'elbow', dir:'flex', rest:150, trigger:130, peakGood:75, peakPoor:110, valgus:false}
+  },
+  db_row: {
+    label:'ダンベルロウ(片手)', view:'真横(必須)',
+    hints:'開始姿勢: 支持する手・膝の位置、背中がニュートラルか / 引く: 体幹・骨盤が回転していないか、肘の軌道が体側に沿っているか / リスク: 反動をつけて引く、上体の回旋でごまかす',
+    rt:{joint:'elbow', dir:'flex', rest:150, trigger:130, peakGood:75, peakPoor:110, valgus:false}
+  },
+  curl: {
+    label:'バーベルカール', view:'真横(必須。肘の位置と反動)',
+    hints:'開始姿勢: 肘の位置が体側で固定されているか / 挙上: 反動(体を揺らす)を使いすぎていないか、手首の角度が安定しているか / リスク: 肩が前後に動いて三角筋・僧帽筋を使ってしまう、可動域を最後まで使えていない',
+    rt:{joint:'elbow', dir:'flex', rest:150, trigger:120, peakGood:55, peakPoor:95, valgus:false}
+  },
+  db_curl: {
+    label:'ダンベルカール', view:'真横(肘の位置) / 正面(左右差)',
+    hints:'開始姿勢: 左右の肘が体側で固定されているか / 挙上: 手首の回旋(スーピネーション)のタイミングが自然か、反動の有無 / リスク: 肩の前後スイング、可動域不足',
+    rt:{joint:'elbow', dir:'flex', rest:150, trigger:120, peakGood:55, peakPoor:95, valgus:false}
+  },
+  triceps_pushdown: {
+    label:'トライセプスプレスダウン', view:'真横(必須。肘の固定を見る)',
+    hints:'開始姿勢: 肘の位置が体側で固定されているか / 伸展: 反動の有無、手首の角度 / リスク: 肘が前後に動いて三頭筋の負荷が逃げる、可動域不足',
+    rt:{joint:'elbow', dir:'extend', rest:100, trigger:120, peakGood:160, peakPoor:135, valgus:false}
+  },
+  kickback: {
+    label:'ダンベルキックバック', view:'真横(必須)',
+    hints:'開始姿勢: 上腕が床と平行に固定できているか、背中がニュートラルか / 伸展: 反動を使わず肘だけを伸ばせているか / リスク: 上腕が動いて三頭筋の負荷が逃げる',
+    rt:{joint:'elbow', dir:'extend', rest:100, trigger:120, peakGood:160, peakPoor:135, valgus:false}
+  },
+  leg_extension: {
+    label:'レッグエクステンション', view:'真横(必須)',
+    hints:'開始姿勢: 座面に深く座り、パッドの位置が適切か / 伸展: 反動を使っていないか、可動域の最後でしっかり伸ばせているか / リスク: 座面からお尻が浮く、勢いをつけた挙上',
+    rt:{joint:'knee', dir:'extend', rest:100, trigger:120, peakGood:165, peakPoor:140, valgus:false}
+  },
+  leg_curl: {
+    label:'レッグカール', view:'真横(必須)',
+    hints:'開始姿勢: 骨盤が座面/台に安定して接地しているか / 屈曲: 骨盤が浮いて反動をつけていないか、可動域を最後まで使えているか / リスク: 腰を反らせて可動域を稼ぐ、左右差',
+    rt:{joint:'knee', dir:'flex', rest:150, trigger:130, peakGood:70, peakPoor:110, valgus:false}
+  },
+  leg_press: {
+    label:'レッグプレス', view:'真横(深さ) / 正面(膝の向き)',
+    hints:'開始姿勢: 足の位置(肩幅・つま先の向き)、座面と背もたれの角度 / 下ろす: 膝が内外側にブレていないか、腰が座面から浮いていないか / トップ: 膝を完全にロックアウトしすぎていないか / リスク: 腰が浮いて可動域を稼ぐ代償、膝の内側崩れ',
+    rt:{joint:'knee', dir:'flex', rest:155, trigger:140, peakGood:95, peakPoor:120, valgus:false}
+  },
+  lateral_raise: {
+    label:'サイドレイズ', view:'正面(必須。腕の高さと左右差)',
+    hints:'開始姿勢: 肘がやや曲がった状態で構えられているか / 挙上: 僧帽筋(肩をすくめる動き)で挙げていないか、反動を使いすぎていないか / トップ: 腕の高さが肩の高さ程度に収まっているか / リスク: 肩のすくみ、勢いを使った挙上',
+    rt:{joint:'shoulder', dir:'extend', rest:35, trigger:50, peakGood:80, peakPoor:65, valgus:false}
+  },
+  rear_delt_fly: {
+    label:'リアレイズ', view:'真横(上体角度) / 正面(腕の高さ)',
+    hints:'開始姿勢: 上体の前傾角度が保てているか / 挙上: 反動を使っていないか、肘の軌道(肩の高さ程度で開く) / リスク: 肩のすくみ、僧帽筋優位の引き方',
+    rt:{joint:'shoulder', dir:'extend', rest:35, trigger:50, peakGood:80, peakPoor:65, valgus:false}
+  },
+  db_fly: {
+    label:'ダンベルフライ', view:'真横 or 斜め上',
+    hints:'開始姿勢: 肩甲骨が寄って安定しているか / 下ろす: 肘の角度が一定に固定されているか(曲げ伸ばしせず弧を描く軌道) / 最下点: 可動域が広すぎて肩関節に過度な負担がかかっていないか / リスク: 肘が伸びきりすぎる、肩がすくむ'
+  },
+  cable_crossover: {
+    label:'ケーブルクロスオーバー', view:'斜め前 or 真横',
+    hints:'開始姿勢: 肘の角度、体幹の前傾姿勢が安定しているか / 動作: 肘の角度が一定に保てているか、可動域(胸の収縮を感じられているか) / リスク: 反動を使う、肩がすくむ'
+  },
+  pullover: {
+    label:'ダンベルプルオーバー', view:'真横(必須)',
+    hints:'開始姿勢: 肩甲骨が下制できているか、体幹が安定しているか / 動作: 肘の角度が一定に保てているか、可動域が広すぎて腰が反っていないか / リスク: 腰が反って体幹が不安定になる'
+  },
+  shrug: {
+    label:'ダンベルシュラッグ', view:'正面 or 真横',
+    hints:'開始姿勢: 腕をまっすぐ下ろして構えられているか / 挙上: 肘を曲げて引き上げていないか(僧帽筋のみで挙げられているか)、反動の有無 / トップ: 可動域の最後で肩をすくめきれているか / リスク: 首をすくめて頸部に負担'
+  },
+  face_pull: {
+    label:'フェイスプル', view:'正面 or 斜め前',
+    hints:'開始姿勢: ロープを顔の高さで構えられているか / 引く: 肘が肩の高さ程度まで上がっているか、肩甲骨を寄せられているか / リスク: 反動を使う、首をすくめる'
+  },
+  hip_abduction: {
+    label:'ヒップアブダクション', view:'正面(必須)',
+    hints:'開始姿勢: 骨盤が安定した姿勢で座れているか / 動作: 上体が反動で傾いていないか、可動域、左右差 / リスク: 体を傾けて勢いで開く'
   }
-});
-videoInput.addEventListener('change', () => {
-  if(videoInput.files[0]) handleVideoFile(videoInput.files[0]);
-});
+};
 
-exerciseSel.addEventListener('change', () => {
-  otherField.style.display = exerciseSel.value === 'other' ? 'block' : 'none';
-});
+const RT_JOINT_LABEL = {knee:'膝', hip:'股関節', elbow:'肘', shoulder:'肩'};
 
-frameCountInput.addEventListener('input', () => {
-  frameCountVal.textContent = frameCountInput.value;
-});
+/* =========================================================
+   2. 共通ユーティリティ
+   ========================================================= */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-async function handleVideoFile(file){
-  fileChosen.textContent = `選択中: ${file.name} (${(file.size/1024/1024).toFixed(1)}MB)`;
-  analyzeBtn.disabled = true;
-  resultsEl.innerHTML = '';
-  statusArea.innerHTML = '<div class="status">動画を読み込み、フレームを抽出しています…</div>';
-  filmstrip.innerHTML = '<div class="empty-note">抽出中…</div>';
+const COACH_SYSTEM = 'あなたは妥協を許さないストイックなパーソナルトレーナーです。渡されたチェックポイントに照らして映像を厳密に確認し、体のどの部分がどうなっているかを根拠として明示した上で指摘してください。褒めるのは本当に問題がないときだけにし、少しでも粗があれば率直に指摘してください。曖昧な励ましや社交辞令は書かないでください。断定的な医学診断はせず、観察に基づく助言に留めます。';
 
+/** Claude API 呼び出しの共通ラッパー。ネットワーク不通を判別可能なエラーとして返す。 */
+async function callClaude({system, content, expectJson = false}){
+  let res;
   try{
-    const count = parseInt(frameCountInput.value, 10);
-    extractedFrames = await extractFrames(file, count);
-    renderFilmstrip(extractedFrames);
-    statusArea.innerHTML = '';
+    res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:1000,
+        system,
+        messages:[{role:'user', content}]
+      })
+    });
+  }catch(e){
+    const err = new Error('OFFLINE');
+    err.offline = true;
+    throw err;
+  }
+  if(!res.ok){
+    let detail = '';
+    try{ const b = await res.json(); detail = b?.error?.message || ''; }catch(e){}
+    throw new Error(`APIエラー (status ${res.status})${detail ? ' — ' + detail : ''}`);
+  }
+  const data = await res.json();
+  const text = (data.content || []).map(b => b.text || '').join('\n').trim();
+  if(!expectJson) return text;
+  try{
+    return JSON.parse(text.replace(/```json|```/g, '').trim());
+  }catch(e){
+    const err = new Error('PARSE_FAILED');
+    err.raw = text;
+    throw err;
+  }
+}
+
+const OFFLINE_MSG = 'AI分析サーバーに接続できませんでした。この機能はClaude.ai上のプレビューでのみ動作します。HTMLファイルを直接ブラウザで開いている場合、AI分析は利用できません(骨格表示・角度計測・レップカウントは引き続き動作します)。';
+
+/** 種目セレクトを生成 */
+function fillExerciseSelect(sel, {includeOther}){
+  sel.innerHTML = '';
+  const auto = document.createElement('option');
+  auto.value = 'auto'; auto.textContent = '自動判定(AIにおまかせ)';
+  sel.appendChild(auto);
+  Object.entries(EXERCISES).forEach(([k, ex]) => {
+    const o = document.createElement('option');
+    o.value = k; o.textContent = ex.label + (ex.rt ? '' : ' ※AI判定のみ');
+    sel.appendChild(o);
+  });
+  if(includeOther){
+    const o = document.createElement('option');
+    o.value = 'other'; o.textContent = 'その他(自由入力)';
+    sel.appendChild(o);
+  }
+  sel.value = 'auto';
+}
+
+/* =========================================================
+   3. モード切替
+   ========================================================= */
+document.querySelectorAll('.mode-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const m = btn.dataset.mode;
+    $('uploadMode').style.display = m === 'upload' ? '' : 'none';
+    $('realtimeMode').style.display = m === 'realtime' ? '' : 'none';
+    if(m !== 'realtime') stopRealtime();
+  });
+});
+
+/* =========================================================
+   4. 動画アップロード分析
+   ========================================================= */
+const upExercise = $('upExercise'), upOtherField = $('upOtherField'), upOtherName = $('upOtherName');
+const frameCount = $('frameCount'), filmstrip = $('filmstrip');
+const analyzeBtn = $('analyzeBtn'), upStatus = $('upStatus'), upResults = $('upResults');
+let frames = [];
+
+fillExerciseSelect(upExercise, {includeOther:true});
+
+function updateViewTip(sel, tipEl){
+  const key = (sel === rtExercise && sel.value === 'auto' && autoKey) ? autoKey : sel.value;
+  const ex = EXERCISES[key];
+  tipEl.textContent = ex
+    ? `推奨アングル: ${ex.view}`
+    : '推奨アングル: 動作面が見える角度(多くの種目は真横)。自動判定では最初の1枚から種目を推定します。';
+}
+upExercise.addEventListener('change', () => {
+  upOtherField.style.display = upExercise.value === 'other' ? 'block' : 'none';
+  updateViewTip(upExercise, $('upViewTip'));
+});
+updateViewTip(upExercise, $('upViewTip'));
+frameCount.addEventListener('input', () => { $('frameCountVal').textContent = frameCount.value; });
+
+$('dropzone').addEventListener('click', () => $('videoInput').click());
+$('dropzone').addEventListener('dragover', e => { e.preventDefault(); $('dropzone').classList.add('drag'); });
+$('dropzone').addEventListener('dragleave', () => $('dropzone').classList.remove('drag'));
+$('dropzone').addEventListener('drop', e => {
+  e.preventDefault(); $('dropzone').classList.remove('drag');
+  if(e.dataTransfer.files?.[0]) handleVideo(e.dataTransfer.files[0]);
+});
+$('videoInput').addEventListener('change', e => { if(e.target.files[0]) handleVideo(e.target.files[0]); });
+
+async function handleVideo(file){
+  $('fileChosen').textContent = `選択中: ${file.name} (${(file.size/1048576).toFixed(1)}MB)`;
+  analyzeBtn.disabled = true;
+  upResults.innerHTML = '';
+  upStatus.innerHTML = '<div class="status">フレームを抽出しています…</div>';
+  filmstrip.innerHTML = '<div class="empty-note">抽出中…</div>';
+  try{
+    frames = await extractFrames(file, +frameCount.value);
+    renderFilmstrip();
+    upStatus.innerHTML = '';
     analyzeBtn.disabled = false;
   }catch(err){
-    console.error(err);
-    statusArea.innerHTML = `<div class="status err">フレーム抽出に失敗しました: ${escapeHtml(err.message || String(err))}</div>`;
+    upStatus.innerHTML = `<div class="status err">フレーム抽出に失敗しました: ${esc(err.message)}</div>`;
     filmstrip.innerHTML = '<div class="empty-note">抽出に失敗しました</div>';
   }
 }
@@ -569,602 +575,363 @@ async function handleVideoFile(file){
 function extractFrames(file, count){
   return new Promise((resolve, reject) => {
     const video = document.createElement('video');
-    video.preload = 'metadata';
-    video.muted = true;
-    video.playsInline = true;
+    video.preload = 'metadata'; video.muted = true; video.playsInline = true;
     const url = URL.createObjectURL(file);
     video.src = url;
-
     video.onerror = () => reject(new Error('動画を読み込めませんでした'));
-
     video.onloadedmetadata = async () => {
       try{
-        const duration = video.duration;
-        if(!duration || !isFinite(duration)) throw new Error('動画の長さを取得できませんでした');
-
-        const maxW = 480;
-        const scale = Math.min(1, maxW / video.videoWidth);
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(video.videoWidth * scale);
-        canvas.height = Math.round(video.videoHeight * scale);
-        const ctx = canvas.getContext('2d');
-
-        const frames = [];
+        const dur = video.duration;
+        if(!dur || !isFinite(dur)) throw new Error('動画の長さを取得できませんでした');
+        const scale = Math.min(1, 480 / video.videoWidth);
+        const cv = document.createElement('canvas');
+        cv.width = Math.round(video.videoWidth * scale);
+        cv.height = Math.round(video.videoHeight * scale);
+        const ctx = cv.getContext('2d');
+        const out = [];
         for(let i = 0; i < count; i++){
-          const t = (duration * (i + 0.5)) / count;
-          await seekTo(video, t);
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.72);
-          frames.push({ time: t, dataUrl });
+          const t = dur * (i + 0.5) / count;
+          await new Promise(r => {
+            const on = () => { video.removeEventListener('seeked', on); r(); };
+            video.addEventListener('seeked', on);
+            video.currentTime = Math.min(t, dur - 0.01);
+          });
+          ctx.drawImage(video, 0, 0, cv.width, cv.height);
+          out.push({time:t, dataUrl:cv.toDataURL('image/jpeg', 0.72)});
         }
         URL.revokeObjectURL(url);
-        resolve(frames);
-      }catch(e){
-        reject(e);
-      }
+        resolve(out);
+      }catch(e){ reject(e); }
     };
   });
 }
 
-function seekTo(video, time){
-  return new Promise((resolve) => {
-    const onSeeked = () => {
-      video.removeEventListener('seeked', onSeeked);
-      resolve();
-    };
-    video.addEventListener('seeked', onSeeked);
-    video.currentTime = Math.min(time, video.duration - 0.01);
-  });
-}
-
-function renderFilmstrip(frames){
+function renderFilmstrip(){
   filmstrip.innerHTML = '';
   frames.forEach((f, i) => {
-    const div = document.createElement('div');
-    div.className = 'frame';
-    div.id = 'frame-' + i;
-    div.innerHTML = `
-      <div style="position:relative;">
-        <span class="idx">#${i+1}</span>
-        <img src="${f.dataUrl}" alt="frame ${i+1}">
-      </div>
-      <div class="t">${f.time.toFixed(1)}s</div>
-    `;
-    filmstrip.appendChild(div);
+    const d = document.createElement('div');
+    d.className = 'frame'; d.id = 'frame-' + i;
+    d.innerHTML = `<div style="position:relative;"><span class="idx">#${i+1}</span>
+      <img src="${f.dataUrl}" alt="frame ${i+1}"></div><div class="t">${f.time.toFixed(1)}s</div>`;
+    filmstrip.appendChild(d);
   });
 }
 
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-const EXERCISE_LABELS = {
-  squat: 'スクワット',
-  deadlift: 'デッドリフト',
-  bench: 'ベンチプレス',
-  overhead_press: 'オーバーヘッドプレス',
-  pulldown: '懸垂 / ラットプルダウン',
-  row: 'ベントオーバーロウ',
-  hip_thrust: 'ヒップスラスト',
-  lunge: 'ランジ',
-  leg_press: 'レッグプレス',
-  curl: 'バーベルカール',
-  db_shoulder_press: 'ダンベルショルダープレス',
-  lateral_raise: 'サイドレイズ',
-  db_fly: 'ダンベルフライ',
-  db_row: 'ダンベルロウ(片手)',
-  db_curl: 'ダンベルカール',
-  goblet_squat: 'ゴブレットスクワット',
-  db_rdl: 'ダンベルルーマニアンデッドリフト',
-  step_up: 'ダンベルステップアップ',
-  incline_db_press: 'インクラインダンベルプレス',
-  shrug: 'ダンベルシュラッグ',
-  kickback: 'ダンベルキックバック',
-  rear_delt_fly: 'リアレイズ',
-  arnold_press: 'アーノルドプレス',
-  pullover: 'ダンベルプルオーバー',
-  bulgarian_split_squat: 'ブルガリアンスクワット',
-  push_up: 'プッシュアップ',
-  leg_curl: 'レッグカール',
-  leg_extension: 'レッグエクステンション',
-  smith_squat: 'スミスマシンスクワット',
-  hip_abduction: 'ヒップアブダクション',
-  cable_crossover: 'ケーブルクロスオーバー',
-  triceps_pushdown: 'トライセプスプレスダウン',
-  face_pull: 'フェイスプル'
-};
-
-const EXERCISE_HINTS = {
-  squat: '開始姿勢: 足幅は肩幅よりやや広め、つま先はやや外向き、胸を張り目線はやや上〜正面 / しゃがみ動作: 股関節と膝が同時に曲がり始めているか、膝が内側に入っていないか(ニーイン)、上体が急に前傾していないか / 最下点: 股関節が膝より下まで下がっているか、かかとが浮いていないか、背中が丸まっていないか / 立ち上がり: お尻だけ先に上がる「グッドモーニング化」をしていないか、膝が伸びきる瞬間の左右ブレ / 代償動作・リスク: 腰の丸まり・反りすぎ、膝の内側崩れ',
-  deadlift: '開始姿勢: バーが足の中央〜すね付近にあるか、背中がニュートラルで肩がバーの真上〜やや前にあるか / 引き上げ動作: 股関節から動き出せているか(ヒップヒンジ)、バーが体に沿って一直線に上がっているか、腰が先に伸び切っていないか / トップ: 股関節・膝が同時にロックアウトできているか、反り腰になっていないか / 下ろす動作: 同じ軌道でコントロールして下ろせているか、背中が丸まっていないか / 代償動作・リスク: 腰椎の過度な屈曲、バーが体から離れる(遠回りする)軌道',
-  bench: '開始姿勢: 肩甲骨が寄って安定しているか、足が床にしっかり接地しているか / 下ろす動作: 肘の軌道が体側から適度に開いているか、バーがみぞおち〜鎖骨あたりに向かって下りているか / 最下点: 胸にバーが軽く触れる深さまで下ろせているか、肩がすくんでいないか / 挙上動作: バーパスが一直線か、左右均等に挙がっているか / 代償動作・リスク: 腰の反りすぎ(過度なブリッジ)、肩がすくんで前方に出る肩関節の負担',
-  overhead_press: '開始姿勢: グリップ幅と手首の角度、体幹が締まっているか / 挙上動作: バーが顔の近くを通り頭上まで一直線に上がっているか、肘の軌道が安定しているか / トップ: 肩がすくまずロックアウトできているか、頭が前に出すぎていないか / 代償動作・リスク: 体幹が緩んで反り腰になる、肘が開きすぎて肩に負担がかかる',
-  pulldown: '開始姿勢: グリップ幅、胸を張れているか / 引く動作: 肩甲骨を下制・内転させてから肘を引けているか、反動(体を後ろに反らせるチーティング)を使いすぎていないか / 最下点: バーが鎖骨〜胸上部あたりに収まっているか / 戻す動作: 肩がすくまず、コントロールして戻せているか / 代償動作・リスク: 首をすくめる、腕だけで引いて背中が使えていない',
-  row: '開始姿勢: 上体の前傾角度が一定に保てるか、背中がニュートラルか / 引く動作: 肘が体側に沿って後方へ引けているか、肩甲骨を寄せられているか / 代償動作・リスク: 反動(体を起こして引く)によるチーティング、腰が丸まる、肩がすくむ',
-  hip_thrust: '開始姿勢: 肩甲骨が台やベンチの安定した位置に設置されているか、足の位置(膝が90°になる位置)が適切か / 挙上動作: 骨盤を後傾させながら股関節を伸展できているか / トップ: 体が一直線になっているか、腰を反りすぎていないか、臀部がしっかり締まっているか / 代償動作・リスク: 腰椎で反ってしまい股関節が主働筋になっていない、膝が外や内に流れる',
-  lunge: '開始姿勢: 足の踏み出し幅、上体がまっすぐ保てているか / 沈み込み動作: 前膝がつま先より大きく前に出過ぎていないか、後ろ膝がまっすぐ下に下りているか / 最下点: 前膝が内外側にブレていないか、上体が前傾しすぎていないか / 代償動作・リスク: バランスを崩して体幹が横に流れる、前膝の内側への崩れ',
-  leg_press: '開始姿勢: 足の位置(肩幅・つま先の向き)、座面と背もたれの角度 / 下ろす動作: 膝が内外側にブレていないか、可動域を深く取れているか(腰が座面から浮いていないか) / トップ: 膝を完全にロックアウトしすぎていないか / 代償動作・リスク: 腰が浮いて可動域を稼ぐ代償、膝の内側への崩れ',
-  curl: '開始姿勢: 肘の位置が体側で固定されているか / 挙上動作: 反動(体を揺らすチーティング)を使いすぎていないか、手首の角度が安定しているか / 代償動作・リスク: 肩が前後に動いて三角筋・僧帽筋を使ってしまう、可動域を最後まで使えていない',
-  db_shoulder_press: '開始姿勢: 左右のダンベルの高さが揃っているか / 挙上動作: 左右対称の軌道で頭上まで上がっているか、反り腰になっていないか / 代償動作・リスク: 肘が真横に開きすぎて肩関節に負担、体幹の不安定さによる左右差',
-  lateral_raise: '開始姿勢: 肘がやや曲がった状態で構えられているか / 挙上動作: 僧帽筋(肩をすくめる動き)で挙げていないか、反動を使いすぎていないか / トップ: 腕の高さが肩の高さ程度に収まっているか / 代償動作・リスク: 肩のすくみ、勢いを使った反動での挙上',
-  db_fly: '開始姿勢: 肩甲骨が寄って安定しているか / 下ろす動作: 肘の角度が一定に固定されているか(曲げ伸ばしせず弧を描く軌道) / 最下点: 可動域が広すぎて肩関節に過度な負担がかかっていないか / 代償動作・リスク: 肘が伸びきりすぎる、肩がすくむ',
-  db_row: '開始姿勢: 支持する手・膝の位置、背中がニュートラルか / 引く動作: 体幹・骨盤が回転(ローテーション)していないか、肘の軌道が体側に沿っているか / 代償動作・リスク: 反動をつけて引く、上体の回旋でごまかす',
-  db_curl: '開始姿勢: 左右の肘が体側で固定されているか / 挙上動作: 手首の回旋(スーピネーション)のタイミングが自然か、反動の有無 / 代償動作・リスク: 肩の前後スイング、可動域不足',
-  goblet_squat: '開始姿勢: ダンベルを胸の前で保持し、胸を張り上体が起きた姿勢を保てているか / しゃがみ動作: 膝が内側に入っていないか、肘が内ももに触れる程度まで深さが取れているか / 代償動作・リスク: 上体が前に突っ込む、かかとが浮く',
-  db_rdl: '開始姿勢: 背中がニュートラルで、膝を軽く曲げた状態から始められているか / 下ろす動作: 股関節から折れているか(ヒップヒンジ)、ダンベルが脚に沿って動いているか / 可動域終端: ハムストリングスの張りを感じる範囲で背中が丸まっていないか / 代償動作・リスク: 膝だけを曲げてしゃがんでしまう(スクワット化)、腰が丸まる',
-  step_up: '開始姿勢: 踏み台に乗せる足の位置、上体がまっすぐか / 踏み込み動作: 反動をつけて後ろ足で蹴っていないか、踏み台に乗せた膝が内側に入っていないか / 代償動作・リスク: 着地時のバランス不安定、上体の前傾しすぎ',
-  incline_db_press: '開始姿勢: ベンチの角度(30〜45度目安)、肩甲骨が寄っているか / 下ろす動作: 肘の軌道と角度、バーパス(ベンチ角度に応じて胸上部に向かう軌道) / 代償動作・リスク: 肩がすくむ、腰の反りすぎ',
-  shrug: '開始姿勢: 腕をまっすぐ下ろして構えられているか / 挙上動作: 肘を曲げて引き上げていないか(僧帽筋のみで挙げられているか)、反動の有無 / トップ: 可動域の最後で肩をすくめきれているか / 代償動作・リスク: 首をすくめて頸部に負担',
-  kickback: '開始姿勢: 上腕が床と平行に固定できているか、背中がニュートラルか / 伸展動作: 反動を使わず肘だけを伸ばせているか / 代償動作・リスク: 上腕が動いてしまい三頭筋の負荷が逃げる',
-  rear_delt_fly: '開始姿勢: 上体の前傾角度が保てているか / 挙上動作: 反動を使っていないか、肘の軌道(肩の高さ程度で開く) / 代償動作・リスク: 肩のすくみ、僧帽筋優位になる引き方',
-  arnold_press: '開始姿勢: ダンベルを顔の前で構え、手のひらが体側を向いているか / 挙上動作: 回旋(手首の回転)と挙上のタイミングが揃っているか、左右対称に挙げられているか / 代償動作・リスク: 反り腰、肩のすくみ',
-  pullover: '開始姿勢: 肩甲骨が下制できているか、体幹が安定しているか / 動作: 肘の角度が一定に保てているか、可動域が広すぎて腰が反っていないか / 代償動作・リスク: 腰が反って体幹が不安定になる',
-  bulgarian_split_squat: '開始姿勢: 後ろ足の甲が台に安定して乗っているか、前後の足の間隔が適切か / しゃがみ動作: 前膝が内側に入っていないか、上体が前傾しすぎていないか / 代償動作・リスク: バランスを崩して横方向にブレる、前膝のつま先超えすぎ',
-  push_up: '開始姿勢: 手の位置(肩幅よりやや広め)、体が頭からかかとまで一直線か / 下ろす動作: 体幹が一直線に保てているか(腰が落ちる/上がりすぎていないか)、肘の軌道(体側から45度程度) / 最下点: 胸が床に近づく深さまで下りているか / 代償動作・リスク: 首が前に出る、腰が反る・落ちる',
-  leg_curl: '開始姿勢: 骨盤が座面/台に安定して接地しているか / 屈曲動作: 骨盤が浮いて反動をつけていないか、可動域を最後まで使えているか / 代償動作・リスク: 腰を反らせて可動域を稼ぐ、左右差',
-  leg_extension: '開始姿勢: 座面に深く座り、パッドの位置が適切か / 伸展動作: 反動を使っていないか、可動域の最後でしっかり伸ばせているか / 代償動作・リスク: 座面からお尻が浮く、勢いをつけた挙上',
-  smith_squat: '開始姿勢: バーの位置が僧帽筋上部〜肩甲骨あたりに乗っているか / しゃがみ動作: 膝が内側に入っていないか、バーの固定軌道に対して体が正しい位置にあるか / 最下点: 深さ、かかとの浮き、背中の丸まり / 代償動作・リスク: 軌道が固定されている分、足の位置がズレると膝や腰に負担が集中しやすい',
-  hip_abduction: '開始姿勢: 骨盤が安定した姿勢で座れているか / 動作: 上体が反動で傾いていないか、可動域、左右差 / 代償動作・リスク: 体を傾けて勢いで開く',
-  cable_crossover: '開始姿勢: 肘の角度、体幹の前傾姿勢が安定しているか / 動作: 肘の角度が一定に保てているか、可動域(胸の収縮を感じられているか) / 代償動作・リスク: 反動を使う、肩がすくむ',
-  triceps_pushdown: '開始姿勢: 肘の位置が体側で固定されているか / 伸展動作: 反動の有無、手首の角度 / 代償動作・リスク: 肘が前後に動いて三頭筋の負荷が逃げる、可動域不足',
-  face_pull: '開始姿勢: ロープを顔の高さで構えられているか / 引く動作: 肘が肩の高さ程度まで上がっているか、肩甲骨を寄せられているか / 代償動作・リスク: 反動を使う、首をすくめる'
-};
-
-analyzeBtn.addEventListener('click', runAnalysis);
-
-async function runAnalysis(){
-  if(extractedFrames.length === 0) return;
-
-  const exVal = exerciseSel.value;
-  const isAuto = exVal === 'auto';
-  const exerciseName = exVal === 'other'
-    ? (otherName.value.trim() || '指定なしの種目')
-    : (isAuto ? null : EXERCISE_LABELS[exVal]);
-  const hints = isAuto
-    ? '一般的なフォームの基本(関節の軌道、姿勢の安定性、可動域、代償動作の有無、左右差)に加え、その種目特有の代表的な注意点'
-    : (EXERCISE_HINTS[exVal] || '一般的なフォームの基本(関節の軌道、姿勢の安定性、可動域、代償動作の有無)');
+analyzeBtn.addEventListener('click', async () => {
+  if(!frames.length) return;
+  const key = upExercise.value;
+  const isAuto = key === 'auto';
+  const ex = EXERCISES[key];
+  const name = key === 'other' ? (upOtherName.value.trim() || '指定なしの種目') : ex?.label;
+  const hints = ex?.hints || '開始姿勢・動作中の軌道・可動域の終端・代償動作の有無';
 
   analyzeBtn.disabled = true;
-  statusArea.innerHTML = '<div class="status">AIコーチが分析しています…(数十秒かかることがあります)</div>';
-  resultsEl.innerHTML = '';
-  clearFrameFlags();
+  upResults.innerHTML = '';
+  upStatus.innerHTML = '<div class="status">AIコーチが分析しています…(数十秒かかることがあります)</div>';
+  document.querySelectorAll('.frame').forEach(e => e.classList.remove('flag-warn','flag-good'));
 
-  const imageContents = extractedFrames.map(f => ({
-    type: 'image',
-    source: {
-      type: 'base64',
-      media_type: 'image/jpeg',
-      data: f.dataUrl.split(',')[1]
-    }
-  }));
+  const header = isAuto
+    ? `これは筋力トレーニングの連続フレーム(#1〜#${frames.length}、時系列順)です。まず種目名を判定してください。候補: ${Object.values(EXERCISES).map(e=>e.label).join('、')}。判定した種目について、開始姿勢・動作中・可動域の終端・代償動作の4局面を順に確認してください。`
+    : `これは「${name}」の連続フレーム(#1〜#${frames.length}、時系列順)です。以下のチェックポイントを一つずつ順番に確認してください。\nチェックポイント: ${hints}`;
 
-  const promptText = isAuto
-    ? `これは筋力トレーニングを行っている連続フレーム(#1〜#${extractedFrames.length}、時系列順)です。
-まず種目名を判定し、その種目で${hints}といった観点を踏まえてフォームをチェックしてください。
+  const prompt = `${header}
 
-以下のJSON形式のみで回答してください。前後に説明文やMarkdownのコードフェンスは付けないでください。
+各指摘には必ず該当フレーム番号と、体のどの部分がどうなっているかという観察根拠を含めてください。表面的な感想ではなく、妥協なく細部まで見てください。
 
+以下のJSON形式のみで回答してください。前後に説明文やコードフェンスは付けないでください。
 {
-  "detected_exercise": "判定した種目名(例: スクワット)",
-  "overall": "全体的な評価を2〜3文で",
-  "good_points": ["良い点1", "良い点2"],
-  "improvements": [
-    {"point": "改善点の説明", "frame_indices": [該当するフレーム番号(1始まり)の配列]}
-  ],
-  "risk_notes": "怪我のリスクにつながりうる点があれば具体的に。無ければ「特になし」",
-  "disclaimer": "AIによる映像上の観察に基づく一般的なアドバイスであり、医療的診断ではない旨の一言"
-}`
-    : `これは「${exerciseName}」を行っている連続フレーム(#1〜#${extractedFrames.length}、時系列順)です。
-チェックすべき代表的なポイント: ${hints}
-
-以下のJSON形式のみで回答してください。前後に説明文やMarkdownのコードフェンスは付けないでください。
-
-{
-  "overall": "全体的な評価を2〜3文で",
-  "good_points": ["良い点1", "良い点2"],
-  "improvements": [
-    {"point": "改善点の説明", "frame_indices": [該当するフレーム番号(1始まり)の配列]}
-  ],
-  "risk_notes": "怪我のリスクにつながりうる点があれば具体的に。無ければ「特になし」",
-  "disclaimer": "AIによる映像上の観察に基づく一般的なアドバイスであり、医療的診断ではない旨の一言"
+${isAuto ? '  "detected_exercise": "判定した種目名",\n' : ''}  "overall": "全体評価を2〜3文で",
+  "good_points": ["良い点(フレーム番号と根拠を含めて2〜4個)"],
+  "improvements": [{"point": "改善点(該当する局面・観察根拠・どう直すべきかを含める)", "frame_indices": [フレーム番号(1始まり)]}],
+  "risk_notes": "怪我のリスクにつながる点。無ければ「特になし」",
+  "disclaimer": "AIによる映像上の観察に基づく助言であり医療的診断ではない旨"
 }`;
 
   try{
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        system: 'あなたは経験豊富な筋力トレーニングコーチです。アマチュアが自分のフォームを撮影した静止画の連続を見て、安全で実践的なフォームアドバイスを行います。断定的な医学診断はせず、観察に基づく一般的な助言に留めます。指定されたJSON形式のみで出力してください。',
-        messages: [
-          {
-            role: 'user',
-            content: [...imageContents, { type: 'text', text: promptText }]
-          }
-        ]
-      })
+    const r = await callClaude({
+      system: COACH_SYSTEM + '指定されたJSON形式のみで出力してください。',
+      content: [
+        ...frames.map(f => ({type:'image', source:{type:'base64', media_type:'image/jpeg', data:f.dataUrl.split(',')[1]}})),
+        {type:'text', text:prompt}
+      ],
+      expectJson: true
     });
-
-    if(!response.ok){
-      throw new Error(`APIエラー (status ${response.status})`);
-    }
-
-    const data = await response.json();
-    const textBlock = (data.content || []).map(b => b.text || '').join('\n').trim();
-    const cleaned = textBlock.replace(/```json|```/g, '').trim();
-
-    let parsed;
-    try{
-      parsed = JSON.parse(cleaned);
-    }catch(parseErr){
-      renderRawFallback(textBlock);
-      statusArea.innerHTML = '';
-      analyzeBtn.disabled = false;
-      return;
-    }
-
-    renderResults(parsed);
-    statusArea.innerHTML = '';
+    renderResults(r);
+    upStatus.innerHTML = '';
   }catch(err){
     console.error(err);
-    statusArea.innerHTML = `<div class="status err">分析に失敗しました: ${escapeHtml(err.message || String(err))}</div>`;
+    if(err.offline){
+      upStatus.innerHTML = `<div class="status err">${OFFLINE_MSG}</div>`;
+    }else if(err.message === 'PARSE_FAILED'){
+      upResults.innerHTML = `<div class="card overall"><h3>分析結果</h3><p style="white-space:pre-wrap;">${esc(err.raw)}</p></div>`;
+      upStatus.innerHTML = '';
+    }else{
+      upStatus.innerHTML = `<div class="status err">分析に失敗しました: ${esc(err.message)}</div>`;
+    }
   }finally{
     analyzeBtn.disabled = false;
   }
-}
-
-function clearFrameFlags(){
-  document.querySelectorAll('.frame').forEach(el => {
-    el.classList.remove('flag-good', 'flag-warn');
-  });
-}
-
-function flagFrames(indices, cls){
-  (indices || []).forEach(i => {
-    const el = document.getElementById('frame-' + (i - 1));
-    if(el) el.classList.add(cls);
-  });
-}
-
-function makeChips(indices){
-  return (indices || []).map(i =>
-    `<span class="chip" onclick="document.getElementById('frame-${i-1}')?.scrollIntoView({behavior:'smooth', inline:'center'})">#${i}</span>`
-  ).join('');
-}
+});
 
 function renderResults(r){
-  resultsEl.innerHTML = '';
+  upResults.innerHTML = '';
+  const add = html => { const d = document.createElement('div'); d.innerHTML = html; upResults.appendChild(d.firstElementChild); };
 
-  const overall = document.createElement('div');
-  overall.className = 'card overall';
-  const detectedLine = r.detected_exercise
-    ? `<div style="font-family:'Courier New', monospace; font-size:12px; color:var(--accent); margin-bottom:8px;">判定種目: ${escapeHtml(r.detected_exercise)}</div>`
-    : '';
-  overall.innerHTML = `<h3><span class="dot" style="background:var(--accent)"></span>総合評価</h3>${detectedLine}<p>${escapeHtml(r.overall || '')}</p>`;
-  resultsEl.appendChild(overall);
+  add(`<div class="card overall"><h3><span class="dot" style="background:var(--accent)"></span>総合評価</h3>
+    ${r.detected_exercise ? `<div class="detected">判定種目: ${esc(r.detected_exercise)}</div>` : ''}
+    <p>${esc(r.overall || '')}</p></div>`);
 
-  if(Array.isArray(r.good_points) && r.good_points.length){
-    const good = document.createElement('div');
-    good.className = 'card good';
-    good.innerHTML = `<h3><span class="dot" style="background:var(--good)"></span>良い点</h3><ul>${
-      r.good_points.map(p => `<li>${escapeHtml(p)}</li>`).join('')
-    }</ul>`;
-    resultsEl.appendChild(good);
+  if(r.good_points?.length){
+    add(`<div class="card good"><h3><span class="dot" style="background:var(--good)"></span>良い点</h3>
+      <ul>${r.good_points.map(p => `<li>${esc(p)}</li>`).join('')}</ul></div>`);
   }
-
-  if(Array.isArray(r.improvements) && r.improvements.length){
-    const warn = document.createElement('div');
-    warn.className = 'card warn';
-    warn.innerHTML = `<h3><span class="dot" style="background:var(--warn)"></span>改善点</h3><ul>${
-      r.improvements.map(item => {
-        flagFrames(item.frame_indices, 'flag-warn');
-        return `<li>${escapeHtml(item.point || '')}${makeChips(item.frame_indices)}</li>`;
-      }).join('')
-    }</ul>`;
-    resultsEl.appendChild(warn);
+  if(r.improvements?.length){
+    const items = r.improvements.map(it => {
+      (it.frame_indices || []).forEach(i => $('frame-' + (i-1))?.classList.add('flag-warn'));
+      const chips = (it.frame_indices || []).map(i =>
+        `<span class="chip" data-f="${i-1}">#${i}</span>`).join('');
+      return `<li>${esc(it.point || '')}${chips}</li>`;
+    }).join('');
+    add(`<div class="card warn"><h3><span class="dot" style="background:var(--warn)"></span>改善点</h3><ul>${items}</ul></div>`);
   }
-
-  if(r.risk_notes && r.risk_notes.trim() && r.risk_notes.trim() !== '特になし'){
-    const risk = document.createElement('div');
-    risk.className = 'card warn';
-    risk.innerHTML = `<h3><span class="dot" style="background:var(--warn)"></span>注意点(怪我リスク)</h3><p>${escapeHtml(r.risk_notes)}</p>`;
-    resultsEl.appendChild(risk);
+  if(r.risk_notes && r.risk_notes.trim() !== '特になし'){
+    add(`<div class="card warn"><h3><span class="dot" style="background:var(--warn)"></span>注意点(怪我リスク)</h3>
+      <p>${esc(r.risk_notes)}</p></div>`);
   }
+  const p = document.createElement('p');
+  p.className = 'disclaimer';
+  p.textContent = r.disclaimer || 'AIによる映像上の観察に基づく参考情報であり、医療的診断ではありません。痛みや違和感がある場合は専門家にご相談ください。';
+  upResults.appendChild(p);
 
-  const disclaimer = document.createElement('p');
-  disclaimer.className = 'disclaimer';
-  disclaimer.textContent = r.disclaimer || 'このアドバイスはAIによる映像上の観察に基づく一般的な参考情報であり、医療的診断ではありません。痛みや違和感がある場合は専門家にご相談ください。';
-  resultsEl.appendChild(disclaimer);
+  upResults.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () =>
+    $('frame-' + c.dataset.f)?.scrollIntoView({behavior:'smooth', inline:'center'})));
 }
 
-function renderRawFallback(text){
-  const card = document.createElement('div');
-  card.className = 'card overall';
-  card.innerHTML = `<h3>分析結果</h3><p style="white-space:pre-wrap;">${escapeHtml(text)}</p>`;
-  resultsEl.appendChild(card);
-}
+/* =========================================================
+   5. リアルタイムモード
+   ========================================================= */
+const rtExercise = $('rtExercise'), rtView = $('rtView'), rtFacing = $('rtFacing');
+const rtVideo = $('rtVideo'), rtCanvas = $('rtCanvas'), rtBanner = $('rtBanner');
+const rtRep = $('rtRep'), rtDetected = $('rtDetected'), rtCountdown = $('rtCountdown');
+const rtCdNum = $('rtCdNum'), rtCdSub = $('rtCdSub'), rtStartBtn = $('rtStartBtn');
+const rtStatus = $('rtStatus'), rtTelemetry = $('rtTelemetry'), telemetryGrid = $('telemetryGrid');
+const rtCoachCard = $('rtCoachCard'), rtCoachText = $('rtCoachText'), rtSummary = $('rtSummary');
+const ttsEnabled = $('ttsEnabled'), rtCountdownSec = $('rtCountdownSec');
 
-/* ================= MODE TABS ================= */
-const modeTabs = document.querySelectorAll('.mode-tab');
-const uploadModeEl = document.getElementById('uploadMode');
-const realtimeModeEl = document.getElementById('realtimeMode');
-modeTabs.forEach(btn => {
-  btn.addEventListener('click', () => {
-    modeTabs.forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    const m = btn.dataset.mode;
-    uploadModeEl.style.display = m === 'upload' ? '' : 'none';
-    realtimeModeEl.style.display = m === 'realtime' ? '' : 'none';
-    if(m !== 'realtime') stopRealtime();
-  });
-});
-
-/* ================= REALTIME MODE ================= */
-const rtExercise = document.getElementById('rtExercise');
-const rtView = document.getElementById('rtView');
-const rtFacing = document.getElementById('rtFacing');
-const rtStartBtn = document.getElementById('rtStartBtn');
-const rtStatus = document.getElementById('rtStatus');
-const rtVideo = document.getElementById('rtVideo');
-const rtCanvas = document.getElementById('rtCanvas');
-const rtBanner = document.getElementById('rtBanner');
-const rtRep = document.getElementById('rtRep');
-const rtDetectedLabel = document.getElementById('rtDetectedLabel');
-const rtCountdown = document.getElementById('rtCountdown');
-const rtCountdownNum = document.getElementById('rtCountdownNum');
-const rtCountdownSub = document.getElementById('rtCountdownSub');
-const rtTelemetry = document.getElementById('rtTelemetry');
-const telemetryGrid = document.getElementById('telemetryGrid');
-const rtCoachCard = document.getElementById('rtCoachCard');
-const rtCoachText = document.getElementById('rtCoachText');
-
-Object.entries(EXERCISE_LABELS).forEach(([val, label]) => {
-  const opt = document.createElement('option');
-  opt.value = val;
-  opt.textContent = label;
-  rtExercise.appendChild(opt);
-});
-rtExercise.value = 'auto';
-
-rtExercise.addEventListener('change', () => {
-  if(rtExercise.value === 'auto'){
-    if(rtRunning) detectExerciseOnce();
-  }else{
-    autoDetectedKey = null;
-    rtDetectedLabel.style.display = 'none';
-  }
-});
-
-// joint: which angle drives rep/depth tracking. deepGood/deepWarnAbove: angle thresholds (degrees).
-// valgus: whether knee-cave detection is meaningful for this movement.
-const REALTIME_RULES = {
-  squat:                 { joint:'knee',  deepGood:100, deepWarnAbove:120, valgus:true },
-  goblet_squat:          { joint:'knee',  deepGood:100, deepWarnAbove:120, valgus:true },
-  lunge:                 { joint:'knee',  deepGood:100, deepWarnAbove:120, valgus:true },
-  step_up:               { joint:'knee',  deepGood:110, deepWarnAbove:130, valgus:true },
-  bulgarian_split_squat: { joint:'knee',  deepGood:100, deepWarnAbove:120, valgus:true },
-  smith_squat:           { joint:'knee',  deepGood:100, deepWarnAbove:120, valgus:true },
-  deadlift:              { joint:'hip',   deepGood:70,  deepWarnAbove:100, valgus:false },
-  db_rdl:                { joint:'hip',   deepGood:80,  deepWarnAbove:110, valgus:false },
-  hip_thrust:            { joint:'hip',   deepGood:80,  deepWarnAbove:110, valgus:false },
-  push_up:               { joint:'elbow', deepGood:80,  deepWarnAbove:110, valgus:false },
-  leg_curl:              { joint:'knee',  deepGood:70,  deepWarnAbove:110, valgus:false }
+const LM = {lSh:11, rSh:12, lEl:13, rEl:14, lWr:15, rWr:16, lHip:23, rHip:24, lKn:25, rKn:26, lAn:27, rAn:28};
+const JOINT_IDS = {
+  knee:     {L:[LM.lHip,LM.lKn,LM.lAn],  R:[LM.rHip,LM.rKn,LM.rAn]},
+  hip:      {L:[LM.lSh,LM.lHip,LM.lKn],  R:[LM.rSh,LM.rHip,LM.rKn]},
+  elbow:    {L:[LM.lSh,LM.lEl,LM.lWr],   R:[LM.rSh,LM.rEl,LM.rWr]},
+  shoulder: {L:[LM.lHip,LM.lSh,LM.lEl],  R:[LM.rHip,LM.rSh,LM.rEl]}
 };
-
-const LM = { lShoulder:11, rShoulder:12, lHip:23, rHip:24, lKnee:25, rKnee:26, lAnkle:27, rAnkle:28, lElbow:13, rElbow:14, lWrist:15, rWrist:16 };
 const CONNECTIONS = [[11,12],[11,23],[12,24],[23,24],[11,13],[13,15],[12,14],[14,16],[23,25],[25,27],[24,26],[26,28]];
+const COACH_INTERVAL = 7000;
+const REP_MIN_INTERVAL = 500;
+const SAMPLE_MS = 250;        // レップ中のフレーム採取間隔
+const COACH_MIN_GAP = 5000;   // AI解析の最短間隔(連続レップでの過剰呼び出し防止)
+const MAX_SAMPLES = 48;
 
-let poseLandmarker = null;
-let rtStream = null;
-let rtRunning = false;
-let rtRafId = null;
-let repCount = 0;
-let repPhase = 'up';
-let minAngleInRep = 999;
-let valgusActive = false;
-let autoDetectedKey = null;
-let autoDetecting = false;
-let analysisActive = false;
-let countdownTimer = null;
-const START_COUNTDOWN_SECONDS = 10;
-let lastCoachCallAt = 0;
-let coachInFlight = false;
-let bannerTimeout = null;
-const COACH_INTERVAL_MS = 7000;
-const ttsEnabled = document.getElementById('ttsEnabled');
+let landmarker = null, stream = null, rafId = null, wakeLock = null;
+let running = false, analysisActive = false;
+let repCount = 0, goodReps = 0, poorReps = 0;
+let repPhase = 'rest', peakAngle = null, lastRepAt = 0;
+let valgusActive = false, autoKey = null, detecting = false;
+let lastCoachAt = 0, coachBusy = false, countdownTimer = null, bannerTimer = null;
+const smoothed = {};
 
-function speak(text){
-  if(!ttsEnabled.checked) return;
-  if(!('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = 'ja-JP';
-  utter.rate = 1.05;
-  window.speechSynthesis.speak(utter);
-}
+// レップ単位解析
+let samples = [];          // {t, jpeg, primary, trunk, asym, valgusRatio}
+let lastSampleAt = 0;
+let repStartAt = 0;
+let coachLog = [];         // 直近のフィードバック履歴
 
-async function ensurePoseLandmarker(){
-  if(poseLandmarker) return poseLandmarker;
-  rtStatus.innerHTML = '<div class="status">姿勢推定モデルを読み込んでいます…(初回は少し時間がかかります)</div>';
-  const { PoseLandmarker, FilesetResolver } = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0');
-  const vision = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm');
-  poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
-    baseOptions: {
-      modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',
-      delegate: 'GPU'
-    },
-    runningMode: 'VIDEO',
-    numPoses: 1
-  });
-  return poseLandmarker;
-}
-
-rtStartBtn.addEventListener('click', () => {
-  if(rtRunning){ stopRealtime(); } else { startRealtime(); }
+fillExerciseSelect(rtExercise, {includeOther:false});
+rtExercise.addEventListener('change', () => {
+  updateViewTip(rtExercise, $('rtViewTip'));
+  if(rtExercise.value === 'auto'){
+    autoKey = null;
+    if(running) detectExercise();
+  }else{
+    autoKey = null;
+    rtDetected.style.display = 'none';
+  }
+  resetRepState();
 });
+updateViewTip(rtExercise, $('rtViewTip'));
+rtCountdownSec.addEventListener('input', () => { $('rtCountdownSecVal').textContent = rtCountdownSec.value; });
+
+/* ---- 音声(優先度つき。カウントダウン>アラート>コーチ) ---- */
+let speakPriority = 0;
+function speak(text, priority = 1){
+  if(!ttsEnabled.checked || !('speechSynthesis' in window)) return;
+  const synth = window.speechSynthesis;
+  if(synth.speaking && priority <= speakPriority) return;  // 重要な発話を上書きしない
+  if(synth.speaking) synth.cancel();
+  speakPriority = priority;
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'ja-JP'; u.rate = 1.1;
+  u.onend = u.onerror = () => { speakPriority = 0; };
+  synth.speak(u);
+}
+
+function activeKey(){ return rtExercise.value === 'auto' ? autoKey : rtExercise.value; }
+function activeRule(){ const k = activeKey(); return k ? EXERCISES[k]?.rt : null; }
+
+function resetRepState(){
+  repCount = 0; goodReps = 0; poorReps = 0;
+  repPhase = 'rest'; peakAngle = null; valgusActive = false; lastRepAt = 0;
+  samples = []; lastSampleAt = 0; repStartAt = 0;
+  Object.keys(smoothed).forEach(k => delete smoothed[k]);
+  rtRep.textContent = 'レップ: 0';
+}
+
+rtStartBtn.addEventListener('click', () => running ? stopRealtime() : startRealtime());
 
 async function startRealtime(){
   rtStartBtn.disabled = true;
+  rtSummary.innerHTML = '';
   try{
-    await ensurePoseLandmarker();
-    rtStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: rtFacing.value, width: {ideal:640}, height:{ideal:480} },
-      audio: false
+    if(!landmarker){
+      rtStatus.innerHTML = '<div class="status">姿勢推定モデルを読み込んでいます…(初回のみ時間がかかります)</div>';
+      const {PoseLandmarker, FilesetResolver} = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0');
+      const vision = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm');
+      landmarker = await PoseLandmarker.createFromOptions(vision, {
+        baseOptions:{
+          modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',
+          delegate:'GPU'
+        },
+        runningMode:'VIDEO', numPoses:1
+      });
+    }
+    stream = await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:rtFacing.value, width:{ideal:640}, height:{ideal:480}}, audio:false
     });
-    rtVideo.srcObject = rtStream;
+    rtVideo.srcObject = stream;
     await rtVideo.play();
     rtCanvas.width = rtVideo.videoWidth;
     rtCanvas.height = rtVideo.videoHeight;
-    rtRunning = true;
-    repCount = 0; repPhase = 'up'; minAngleInRep = 999; valgusActive = false;
-    analysisActive = false;
+
+    try{ if('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); }catch(e){}
+
+    running = true; analysisActive = false;
+    resetRepState();
+    coachLog = [];
     rtRep.style.display = 'block';
-    rtRep.textContent = 'レップ: 0';
     rtTelemetry.style.display = 'block';
     rtCoachCard.style.display = 'block';
-    rtCoachText.textContent = '観察中…';
+    rtCoachText.textContent = '準備中…';
     rtStartBtn.textContent = 'カメラを停止する';
     rtStatus.innerHTML = '';
-    lastCoachCallAt = 0;
-    autoDetectedKey = null;
+    lastCoachAt = 0;
+
+    autoKey = null;
     if(rtExercise.value === 'auto'){
-      rtDetectedLabel.style.display = 'block';
-      rtDetectedLabel.textContent = '判定中…';
-      detectExerciseOnce();
+      rtDetected.style.display = 'block';
+      rtDetected.textContent = '種目を判定中…';
+      detectExercise();
     }else{
-      rtDetectedLabel.style.display = 'none';
+      rtDetected.style.display = 'none';
     }
-    rtLoop();
-    runStartCountdown(START_COUNTDOWN_SECONDS);
+    loop();
+    startCountdown(+rtCountdownSec.value);
   }catch(err){
     console.error(err);
-    rtStatus.innerHTML = `<div class="status err">カメラまたはモデルの起動に失敗しました: ${escapeHtml(err.message || String(err))}<br>プレビュー内ではカメラ権限がブロックされる場合があります。ダウンロードしたHTMLファイルを直接ブラウザで開いてお試しください。</div>`;
+    rtStatus.innerHTML = `<div class="status err">カメラまたはモデルの起動に失敗しました: ${esc(err.message || String(err))}<br>
+      プレビュー内ではカメラ権限がブロックされる場合があります。HTMLファイルを直接ブラウザで開くとカメラは動作しますが、その場合AIコメントは利用できません。</div>`;
   }finally{
     rtStartBtn.disabled = false;
   }
 }
 
 function stopRealtime(){
-  rtRunning = false;
-  analysisActive = false;
-  if(countdownTimer) clearInterval(countdownTimer);
-  rtCountdown.style.display = 'none';
-  if(rtRafId) cancelAnimationFrame(rtRafId);
-  if(rtStream){ rtStream.getTracks().forEach(t => t.stop()); rtStream = null; }
+  const hadSession = running && repCount > 0;
+  running = false; analysisActive = false;
+  clearInterval(countdownTimer); countdownTimer = null;
+  if(rafId) cancelAnimationFrame(rafId);
+  stream?.getTracks().forEach(t => t.stop()); stream = null;
   rtVideo.srcObject = null;
+  wakeLock?.release?.().catch(()=>{}); wakeLock = null;
   rtStartBtn.textContent = 'カメラを開始する';
+  rtCountdown.style.display = 'none';
   rtBanner.style.display = 'none';
-  rtDetectedLabel.style.display = 'none';
+  rtDetected.style.display = 'none';
   if('speechSynthesis' in window) window.speechSynthesis.cancel();
+  if(hadSession) showSummary();
 }
 
-function runStartCountdown(seconds){
-  let remaining = seconds;
+function showSummary(){
+  const k = activeKey();
+  const majors = coachLog.filter(c => c.severity === 'major');
+  const issueList = majors.length
+    ? `<div style="margin-top:14px;">
+        <div style="font-size:11px; letter-spacing:.1em; color:var(--warn); margin-bottom:6px;">繰り返し出た要修正点</div>
+        <ul style="margin:0; padding-left:18px; font-size:13.5px; line-height:1.8;">
+          ${[...new Set(majors.map(c => c.cue))].slice(0,4).map(c => `<li>${esc(c)}</li>`).join('')}
+        </ul></div>`
+    : '';
+  rtSummary.innerHTML = `<div class="card overall"><h3><span class="dot" style="background:var(--accent)"></span>セッション結果</h3>
+    <div class="telemetry-grid">
+      <div class="telemetry-item"><div class="val">${repCount}</div><div class="lbl">総レップ</div></div>
+      <div class="telemetry-item"><div class="val" style="color:var(--good)">${goodReps}</div><div class="lbl">可動域 良好</div></div>
+      <div class="telemetry-item"><div class="val" style="color:var(--warn)">${poorReps}</div><div class="lbl">可動域 不足</div></div>
+    </div>
+    ${issueList}
+    <p style="margin-top:12px; font-size:13px; color:var(--muted);">
+      種目: ${k ? esc(EXERCISES[k].label) : '未判定'}</p></div>`;
+}
+
+function startCountdown(sec){
+  let n = sec;
+  const k = activeKey();
+  const viewHint = k ? EXERCISES[k].view : '動作面が見える角度';
   rtCountdown.style.display = 'flex';
-  rtCountdownNum.textContent = remaining;
-  rtCountdownSub.textContent = 'スタートポジションを作ってください';
-  speak(`スタートポジションを作ってください。${remaining}秒`);
+  rtCdNum.textContent = n;
+  rtCdSub.textContent = `スタートポジションを作ってください\n推奨アングル: ${viewHint}`;
+  rtCdSub.style.whiteSpace = 'pre-line';
+  speak(`スタートポジションを作ってください。${n}秒`, 3);
 
   countdownTimer = setInterval(() => {
-    if(!rtRunning){ clearInterval(countdownTimer); return; }
-    remaining--;
-    if(remaining > 0){
-      rtCountdownNum.textContent = remaining;
-      speak(String(remaining));
+    if(!running){ clearInterval(countdownTimer); return; }
+    n--;
+    if(n > 0){
+      rtCdNum.textContent = n;
+      if(n <= 5 || n % 5 === 0) speak(String(n), 3);
     }else{
-      clearInterval(countdownTimer);
-      countdownTimer = null;
-      rtCountdownNum.textContent = 'START';
-      rtCountdownSub.textContent = '';
-      speak('スタート');
+      clearInterval(countdownTimer); countdownTimer = null;
+      rtCdNum.textContent = 'START';
+      rtCdSub.textContent = '';
+      speak('スタート', 3);
       setTimeout(() => {
-        if(!rtRunning) return;
+        if(!running) return;
         rtCountdown.style.display = 'none';
         analysisActive = true;
-        repCount = 0; repPhase = 'up'; minAngleInRep = 999; valgusActive = false;
-        rtRep.textContent = 'レップ: 0';
-        lastCoachCallAt = performance.now() - COACH_INTERVAL_MS;
+        resetRepState();
+        lastCoachAt = performance.now() - COACH_INTERVAL;
+        rtCoachText.textContent = '観察中…';
       }, 500);
     }
   }, 1000);
 }
 
-function getEffectiveExerciseKey(){
-  return rtExercise.value === 'auto' ? autoDetectedKey : rtExercise.value;
-}
-
-async function detectExerciseOnce(){
-  if(autoDetecting || !rtRunning) return;
-  autoDetecting = true;
-  try{
-    const canvas = document.createElement('canvas');
-    canvas.width = 400;
-    canvas.height = Math.round(400 * rtVideo.videoHeight / rtVideo.videoWidth);
-    canvas.getContext('2d').drawImage(rtVideo, 0, 0, canvas.width, canvas.height);
-    const jpeg = canvas.toDataURL('image/jpeg', 0.6).split(',')[1];
-    const list = Object.entries(EXERCISE_LABELS).map(([k, v]) => `${k}: ${v}`).join('\n');
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        system: 'あなたは筋力トレーニング種目を画像から判定するアシスタントです。指定されたJSON形式のみで出力してください。前後に説明文を付けないでください。',
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: jpeg } },
-            { type: 'text', text: `この写真は筋力トレーニング中の1コマです。以下の種目リストから最も近いものを1つ選び、該当するキーを返してください。リストに近いものがなければ"unknown"としてください。\n\n種目リスト:\n${list}\n\n出力形式(これのみ):\n{"exercise_key": "xxx"}` }
-          ]
-        }]
-      })
-    });
-    if(response.ok){
-      const data = await response.json();
-      const text = (data.content || []).map(b => b.text || '').join('').trim();
-      const cleaned = text.replace(/```json|```/g, '').trim();
-      let parsed;
-      try{ parsed = JSON.parse(cleaned); }catch(e){ parsed = null; }
-      const key = parsed && parsed.exercise_key;
-      if(key && EXERCISE_LABELS[key]){
-        autoDetectedKey = key;
-        rtDetectedLabel.textContent = '判定種目: ' + EXERCISE_LABELS[key];
-      }else{
-        autoDetectedKey = null;
-        rtDetectedLabel.textContent = '判定種目: 不明(手動選択推奨)';
-      }
-    }
-  }catch(e){
-    console.error(e);
-    rtDetectedLabel.textContent = '判定失敗';
-  }finally{
-    autoDetecting = false;
-  }
-}
-
-function rtLoop(){
-  if(!rtRunning) return;
+function loop(){
+  if(!running) return;
   const now = performance.now();
-  const result = poseLandmarker.detectForVideo(rtVideo, now);
+  const res = landmarker.detectForVideo(rtVideo, now);
   const ctx = rtCanvas.getContext('2d');
   ctx.clearRect(0, 0, rtCanvas.width, rtCanvas.height);
-
-  if(result.landmarks && result.landmarks[0]){
-    const lm = result.landmarks[0];
+  if(res.landmarks?.[0]){
+    const lm = res.landmarks[0];
     drawSkeleton(ctx, lm);
-    processAngles(lm);
-    if(analysisActive) maybeCallCoach(now);
+    processFrame(lm, now);
+    if(analysisActive) maybeCoach(now);
   }
-
-  rtRafId = requestAnimationFrame(rtLoop);
+  rafId = requestAnimationFrame(loop);
 }
 
 function drawSkeleton(ctx, lm){
-  ctx.strokeStyle = '#e8b64a';
-  ctx.lineWidth = 3;
-  CONNECTIONS.forEach(([a, b]) => {
+  ctx.strokeStyle = '#e8b64a'; ctx.lineWidth = 3;
+  CONNECTIONS.forEach(([a,b]) => {
     const p1 = lm[a], p2 = lm[b];
     if(!p1 || !p2) return;
     ctx.beginPath();
@@ -1173,151 +940,317 @@ function drawSkeleton(ctx, lm){
     ctx.stroke();
   });
   ctx.fillStyle = '#ece7de';
-  lm.forEach(p => {
-    ctx.beginPath();
-    ctx.arc(p.x * rtCanvas.width, p.y * rtCanvas.height, 3, 0, Math.PI * 2);
-    ctx.fill();
-  });
+  lm.forEach(p => { ctx.beginPath(); ctx.arc(p.x*rtCanvas.width, p.y*rtCanvas.height, 3, 0, 6.284); ctx.fill(); });
 }
 
 function angleAt(a, b, c){
-  const ab = { x: a.x - b.x, y: a.y - b.y };
-  const cb = { x: c.x - b.x, y: c.y - b.y };
+  if(!a || !b || !c) return NaN;
+  const ab = {x:a.x-b.x, y:a.y-b.y}, cb = {x:c.x-b.x, y:c.y-b.y};
   const mag = Math.hypot(ab.x, ab.y) * Math.hypot(cb.x, cb.y);
-  if(mag === 0) return NaN;
-  let cos = (ab.x * cb.x + ab.y * cb.y) / mag;
-  cos = Math.max(-1, Math.min(1, cos));
-  return Math.acos(cos) * 180 / Math.PI;
+  if(!mag) return NaN;
+  return Math.acos(Math.max(-1, Math.min(1, (ab.x*cb.x + ab.y*cb.y)/mag))) * 180/Math.PI;
 }
 
-function avgAngle(a, b){
-  if(isNaN(a)) return b;
-  if(isNaN(b)) return a;
-  return (a + b) / 2;
+/** 真横撮影では反対側が隠れて角度が壊れるため、可視性の高い側を採用する */
+function visOf(lm, ids){ return ids.reduce((s,i) => s + (lm[i]?.visibility ?? 1), 0) / ids.length; }
+
+function bestSideAngle(lm, joint){
+  const {L, R} = JOINT_IDS[joint];
+  const ids = visOf(lm, L) >= visOf(lm, R) ? L : R;
+  return angleAt(lm[ids[0]], lm[ids[1]], lm[ids[2]]);
 }
 
-function processAngles(lm){
-  const kneeAngle = avgAngle(
-    angleAt(lm[LM.lHip], lm[LM.lKnee], lm[LM.lAnkle]),
-    angleAt(lm[LM.rHip], lm[LM.rKnee], lm[LM.rAnkle])
-  );
-  const hipAngle = avgAngle(
-    angleAt(lm[LM.lShoulder], lm[LM.lHip], lm[LM.lKnee]),
-    angleAt(lm[LM.rShoulder], lm[LM.rHip], lm[LM.rKnee])
-  );
-  const elbowAngle = avgAngle(
-    angleAt(lm[LM.lShoulder], lm[LM.lElbow], lm[LM.lWrist]),
-    angleAt(lm[LM.rShoulder], lm[LM.rElbow], lm[LM.rWrist])
-  );
+/** 左右とも十分に見えているときだけ左右差を返す(真横撮影では null) */
+function asymmetry(lm, joint){
+  const {L, R} = JOINT_IDS[joint];
+  if(visOf(lm, L) < 0.6 || visOf(lm, R) < 0.6) return null;
+  const aL = angleAt(lm[L[0]], lm[L[1]], lm[L[2]]);
+  const aR = angleAt(lm[R[0]], lm[R[1]], lm[R[2]]);
+  if(isNaN(aL) || isNaN(aR)) return null;
+  return Math.abs(aL - aR);
+}
 
-  updateTelemetry([
-    { label: '膝角度', val: (isNaN(kneeAngle) ? '--' : Math.round(kneeAngle)) + '°' },
-    { label: '股関節角度', val: (isNaN(hipAngle) ? '--' : Math.round(hipAngle)) + '°' },
-    { label: '肘角度', val: (isNaN(elbowAngle) ? '--' : Math.round(elbowAngle)) + '°' }
-  ]);
+/** 体幹の前傾角(0°=直立) */
+function trunkLean(lm){
+  const sh = {x:(lm[LM.lSh].x + lm[LM.rSh].x)/2, y:(lm[LM.lSh].y + lm[LM.rSh].y)/2};
+  const hp = {x:(lm[LM.lHip].x + lm[LM.rHip].x)/2, y:(lm[LM.lHip].y + lm[LM.rHip].y)/2};
+  const dy = hp.y - sh.y;
+  if(Math.abs(dy) < 1e-4) return NaN;
+  return Math.abs(Math.atan2(sh.x - hp.x, dy) * 180 / Math.PI);
+}
 
-  const rule = REALTIME_RULES[getEffectiveExerciseKey()];
-  if(!rule) return;
-  if(!analysisActive) return;
+/** 膝の内側入り度合い(1.0=足首幅と同じ、小さいほどニーイン) */
+function valgusRatio(lm){
+  const kn = Math.hypot(lm[LM.lKn].x - lm[LM.rKn].x, lm[LM.lKn].y - lm[LM.rKn].y);
+  const an = Math.hypot(lm[LM.lAn].x - lm[LM.rAn].x, lm[LM.lAn].y - lm[LM.rAn].y);
+  return an > 0.01 ? kn / an : null;
+}
 
-  const primaryAngle = rule.joint === 'knee' ? kneeAngle : (rule.joint === 'hip' ? hipAngle : elbowAngle);
-  if(isNaN(primaryAngle)) return;
+/** 指数移動平均でジッタを抑え、誤検出レップを減らす */
+function smooth(key, val, alpha = 0.35){
+  if(isNaN(val)) return smoothed[key] ?? NaN;
+  smoothed[key] = smoothed[key] === undefined ? val : smoothed[key]*(1-alpha) + val*alpha;
+  return smoothed[key];
+}
 
+function processFrame(lm, now){
+  const knee     = smooth('knee',     bestSideAngle(lm, 'knee'));
+  const hip      = smooth('hip',      bestSideAngle(lm, 'hip'));
+  const elbow    = smooth('elbow',    bestSideAngle(lm, 'elbow'));
+  const shoulder = smooth('shoulder', bestSideAngle(lm, 'shoulder'));
+  const angles = {knee, hip, elbow, shoulder};
+
+  const rule = activeRule();
+  const shown = rule ? [rule.joint, ...['knee','hip','elbow'].filter(j => j !== rule.joint)].slice(0,3)
+                     : ['knee','hip','elbow'];
+  updateTelemetry(shown.map(j => ({
+    label: RT_JOINT_LABEL[j] + '角度',
+    val: isNaN(angles[j]) ? '--' : Math.round(angles[j]) + '°'
+  })));
+
+  if(!rule || !analysisActive) return;
+  const a = angles[rule.joint];
+  if(isNaN(a)) return;
+
+  // ニーイン検知(正面撮影時のみ)
+  const vr = valgusRatio(lm);
   if(rule.valgus && rtView.value === 'front'){
-    if(primaryAngle < 150){
-      const kneeSep = Math.hypot(lm[LM.lKnee].x - lm[LM.rKnee].x, lm[LM.lKnee].y - lm[LM.rKnee].y);
-      const ankleSep = Math.hypot(lm[LM.lAnkle].x - lm[LM.rAnkle].x, lm[LM.lAnkle].y - lm[LM.rAnkle].y);
-      const isValgus = ankleSep > 0.01 && kneeSep / ankleSep < 0.7;
-      if(isValgus && !valgusActive){
-        valgusActive = true;
-        showBanner('膝が内側に入っています', 'warn');
-      }else if(!isValgus){
-        valgusActive = false;
-      }
-    }else{
-      valgusActive = false;
-    }
+    if(a < 150){
+      const isValgus = vr !== null && vr < 0.7;
+      if(isValgus && !valgusActive){ valgusActive = true; banner('膝が内側に入ってる', 'warn'); }
+      else if(!isValgus) valgusActive = false;
+    }else valgusActive = false;
   }
 
-  if(repPhase === 'up' && primaryAngle < 140){
-    repPhase = 'down';
-    minAngleInRep = primaryAngle;
-  }else if(repPhase === 'down'){
-    minAngleInRep = Math.min(minAngleInRep, primaryAngle);
-    if(primaryAngle > 155){
-      repPhase = 'up';
+  // レップ判定 (flex / extend 両対応)
+  const towardPeak = rule.dir === 'flex' ? (a < rule.trigger) : (a > rule.trigger);
+  const backToRest = rule.dir === 'flex' ? (a > rule.rest)    : (a < rule.rest);
+
+  if(repPhase === 'rest'){
+    if(towardPeak){
+      repPhase = 'active';
+      peakAngle = a;
+      repStartAt = now;
+      samples = [];
+      lastSampleAt = 0;
+    }
+  }else{
+    // レップ中は一定間隔で画像とメトリクスを蓄積
+    if(now - lastSampleAt >= SAMPLE_MS && samples.length < MAX_SAMPLES){
+      lastSampleAt = now;
+      samples.push({
+        t: now,
+        jpeg: snapshot(320, 0.5),
+        primary: a,
+        trunk: trunkLean(lm),
+        asym: asymmetry(lm, rule.joint),
+        vr
+      });
+    }
+
+    peakAngle = rule.dir === 'flex' ? Math.min(peakAngle, a) : Math.max(peakAngle, a);
+
+    if(backToRest && now - lastRepAt > REP_MIN_INTERVAL){
+      repPhase = 'rest';
+      lastRepAt = now;
+      const good = rule.dir === 'flex' ? peakAngle <= rule.peakGood : peakAngle >= rule.peakGood;
+      const poor = rule.dir === 'flex' ? peakAngle >= rule.peakPoor : peakAngle <= rule.peakPoor;
       repCount++;
       rtRep.textContent = 'レップ: ' + repCount;
-      if(minAngleInRep <= rule.deepGood){
-        showBanner('深さ良好 👍', 'good', `${repCount}レップ、深さ良好`);
-      }else if(minAngleInRep >= rule.deepWarnAbove){
-        showBanner('もう少し深く', 'warn', `${repCount}レップ、もう少し深く`);
-      }else{
-        speak(`${repCount}レップ`);
-      }
-      minAngleInRep = 999;
+      if(good){ goodReps++; banner('可動域 OK', 'good', `${repCount}、可動域オーケー`); }
+      else if(poor){ poorReps++; banner('可動域が浅い', 'warn', `${repCount}、浅い。もっと動かせ`); }
+      else speak(String(repCount), 2);
+
+      coachOnRep(now, rule, {peak:peakAngle, good, poor, endAngle:a});
+      peakAngle = null;
     }
   }
 }
 
-function showBanner(text, kind, speechText){
+function banner(text, kind, speech){
   rtBanner.textContent = text;
   rtBanner.className = 'rt-banner ' + kind;
   rtBanner.style.display = 'block';
-  clearTimeout(bannerTimeout);
-  bannerTimeout = setTimeout(() => { rtBanner.style.display = 'none'; }, 2200);
-  speak(speechText || text);
+  clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(() => { rtBanner.style.display = 'none'; }, 2000);
+  speak(speech || text, 2);
 }
 
 function updateTelemetry(items){
-  telemetryGrid.innerHTML = items.map(it =>
-    `<div class="telemetry-item"><div class="val">${it.val}</div><div class="lbl">${it.label}</div></div>`
-  ).join('');
+  telemetryGrid.innerHTML = items.map(i =>
+    `<div class="telemetry-item"><div class="val">${i.val}</div><div class="lbl">${i.label}</div></div>`).join('');
 }
 
-async function maybeCallCoach(now){
-  if(coachInFlight) return;
-  if(now - lastCoachCallAt < COACH_INTERVAL_MS) return;
-  lastCoachCallAt = now;
-  coachInFlight = true;
-  try{
-    const canvas = document.createElement('canvas');
-    canvas.width = 400;
-    canvas.height = Math.round(400 * rtVideo.videoHeight / rtVideo.videoWidth);
-    canvas.getContext('2d').drawImage(rtVideo, 0, 0, canvas.width, canvas.height);
-    const jpeg = canvas.toDataURL('image/jpeg', 0.6).split(',')[1];
-    const effKey = getEffectiveExerciseKey();
-    const exLabel = (effKey && EXERCISE_LABELS[effKey]) || '筋力トレーニング';
+function snapshot(width = 400, quality = 0.6){
+  const cv = document.createElement('canvas');
+  cv.width = width;
+  cv.height = Math.round(width * rtVideo.videoHeight / rtVideo.videoWidth);
+  cv.getContext('2d').drawImage(rtVideo, 0, 0, cv.width, cv.height);
+  return cv.toDataURL('image/jpeg', quality).split(',')[1];
+}
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        system: 'あなたは妥協を許さないストイックなパーソナルトレーナーです。1枚の静止画からその瞬間のフォームを見て、日本語で一言だけ指摘してください。褒めるのは本当に完璧なときだけにし、少しでも粗があれば率直に指摘してください。曖昧な励ましや社交辞令は禁止です。「もっと深く」「膝が流れてる」のように、体育会系コーチのような短く言い切る口調にしてください。20〜40文字程度。JSONや記号は使わず、アドバイス文のみを出力してください。',
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: jpeg } },
-            { type: 'text', text: `種目: ${exLabel}。この瞬間のフォームについて一言アドバイスをください。` }
-          ]
-        }]
-      })
+async function detectExercise(){
+  if(detecting || !running) return;
+  detecting = true;
+  try{
+    const list = Object.entries(EXERCISES).map(([k,e]) => `${k}: ${e.label}`).join('\n');
+    const r = await callClaude({
+      system:'筋力トレーニング種目を画像から判定します。指定されたJSON形式のみで出力してください。',
+      content:[
+        {type:'image', source:{type:'base64', media_type:'image/jpeg', data:snapshot()}},
+        {type:'text', text:`この写真はトレーニング中の1コマです。次のリストから最も近い種目のキーを1つ選んでください。近いものがなければ"unknown"。\n\n${list}\n\n出力形式(これのみ):\n{"exercise_key":"xxx"}`}
+      ],
+      expectJson:true
     });
-    if(response.ok){
-      const data = await response.json();
-      const text = (data.content || []).map(b => b.text || '').join(' ').trim();
-      if(text){
-        rtCoachText.textContent = text;
-        speak(text);
-      }
+    if(EXERCISES[r.exercise_key]){
+      autoKey = r.exercise_key;
+      rtDetected.textContent = '判定: ' + EXERCISES[autoKey].label;
+      updateViewTip(rtExercise, $('rtViewTip'));
+    }else{
+      autoKey = null;
+      rtDetected.textContent = '判定: 不明(手動選択推奨)';
     }
   }catch(e){
+    autoKey = null;
+    rtDetected.textContent = e.offline ? '判定: オフライン' : '判定: 失敗';
+  }finally{
+    detecting = false;
+  }
+}
+
+/** レップ完了時に、その1レップ分の画像3枚と実測値をまとめてAIに送る */
+async function coachOnRep(now, rule, res){
+  if(coachBusy || now - lastCoachAt < COACH_MIN_GAP) return;
+  if(samples.length < 2) return;
+  lastCoachAt = now;
+  coachBusy = true;
+
+  const batch = samples.slice();
+  const repNo = repCount;
+
+  try{
+    // 開始・ピーク・終了の3枚を代表として抽出
+    const peakIdx = batch.reduce((best, s, i) =>
+      (rule.dir === 'flex' ? s.primary < batch[best].primary : s.primary > batch[best].primary) ? i : best, 0);
+    const picks = [
+      {tag:'開始', s:batch[0]},
+      {tag:rule.dir === 'flex' ? '最深点' : '最大伸展点', s:batch[peakIdx]},
+      {tag:'終了', s:batch[batch.length-1]}
+    ];
+
+    const jointLabel = RT_JOINT_LABEL[rule.joint];
+    const eccentric = ((batch[peakIdx].t - batch[0].t) / 1000).toFixed(1);
+    const concentric = ((batch[batch.length-1].t - batch[peakIdx].t) / 1000).toFixed(1);
+    const trunkVals = batch.map(s => s.trunk).filter(v => !isNaN(v));
+    const maxTrunk = trunkVals.length ? Math.round(Math.max(...trunkVals)) : null;
+    const trunkSwing = trunkVals.length ? Math.round(Math.max(...trunkVals) - Math.min(...trunkVals)) : null;
+    const asymVals = batch.map(s => s.asym).filter(v => v !== null && !isNaN(v));
+    const maxAsym = asymVals.length ? Math.round(Math.max(...asymVals)) : null;
+    const vrVals = batch.map(s => s.vr).filter(v => v !== null && !isNaN(v));
+    const minVr = vrVals.length ? Math.min(...vrVals).toFixed(2) : null;
+
+    const metrics = [
+      `レップ番号: ${repNo}`,
+      `${jointLabel}角度: 開始 ${Math.round(batch[0].primary)}° → ${rule.dir === 'flex' ? '最小' : '最大'} ${Math.round(res.peak)}° (可動域 ${Math.abs(Math.round(res.peak - batch[0].primary))}°)`,
+      `可動域の目安判定: ${res.good ? '十分' : res.poor ? '不足' : '標準的'}(目標 ${rule.dir === 'flex' ? `${rule.peakGood}°以下` : `${rule.peakGood}°以上`})`,
+      `テンポ: 往路 ${eccentric}秒 / 復路 ${concentric}秒`,
+      maxTrunk !== null ? `体幹前傾: 最大 ${maxTrunk}°(レップ中の振れ幅 ${trunkSwing}°)` : null,
+      maxAsym !== null ? `左右差: 最大 ${maxAsym}°` : `左右差: 計測不可(真横撮影のため片側のみ可視)`,
+      minVr !== null ? `膝幅/足首幅の比: 最小 ${minVr}(1.0未満が続くとニーイン傾向)` : null
+    ].filter(Boolean).join('\n');
+
+    const ex = EXERCISES[activeKey()];
+    const history = coachLog.slice(-3).map(c => `- ${c.cue}`).join('\n');
+
+    const r = await callClaude({
+      system: COACH_SYSTEM + '骨格推定の実測値と1レップ分の連続画像を渡します。画像の見た目だけでなく実測値も根拠として使い、最も重大な1点に絞って指摘してください。指定されたJSON形式のみで出力してください。',
+      content: [
+        ...picks.flatMap(p => ([
+          {type:'text', text:`[${p.tag}] ${jointLabel}角度 ${Math.round(p.s.primary)}°`},
+          {type:'image', source:{type:'base64', media_type:'image/jpeg', data:p.s.jpeg}}
+        ])),
+        {type:'text', text:`種目: ${ex?.label || '筋力トレーニング'}
+撮影アングル: ${rtView.value === 'side' ? '真横' : '正面'}
+
+チェックポイント:
+${ex?.hints || '関節の軌道、姿勢の安定性、可動域、代償動作'}
+
+このレップの実測値:
+${metrics}
+
+${history ? `直近に伝えた指摘(同じ内容の繰り返しは避け、改善していれば触れる):\n${history}\n` : ''}
+上記の画像3枚と実測値を突き合わせ、このレップで最も重大な問題を1つだけ特定してください。実測値に問題が出ていない場合でも、画像から見える姿勢の崩れを優先して探してください。本当に指摘すべき点がなければ severity を ok にしてください。
+
+以下のJSON形式のみで出力:
+{"severity":"ok|minor|major","cue":"音声で読む短い指示。15〜25文字。命令形で言い切る","detail":"画面表示用。どこがどう崩れているかの観察根拠と、具体的な修正方法。50〜80文字"}`}
+      ],
+      expectJson: true
+    });
+
+    if(!running) return;
+    const sev = ['ok','minor','major'].includes(r.severity) ? r.severity : 'minor';
+    pushCoachLog(repNo, sev, r.cue || '', r.detail || '');
+    if(r.cue) speak(r.cue, sev === 'major' ? 2 : 1);
+  }catch(e){
+    if(e.offline){
+      rtCoachText.innerHTML = '<span style="color:var(--muted)">オフラインのためAIコメントは利用できません(角度・レップ計測は動作中)</span>';
+    }
     console.error(e);
   }finally{
-    coachInFlight = false;
+    coachBusy = false;
   }
+}
+
+/** レップ判定ルールを持たない種目向け: 一定間隔で1枚だけ見るフォールバック */
+async function maybeCoach(now){
+  if(activeRule()) return;                       // ルールがある種目はレップ単位解析に任せる
+  if(coachBusy || now - lastCoachAt < COACH_INTERVAL) return;
+  lastCoachAt = now;
+  coachBusy = true;
+  try{
+    const ex = EXERCISES[activeKey()];
+    const history = coachLog.slice(-3).map(c => `- ${c.cue}`).join('\n');
+    const r = await callClaude({
+      system: COACH_SYSTEM + '指定されたJSON形式のみで出力してください。',
+      content:[
+        {type:'image', source:{type:'base64', media_type:'image/jpeg', data:snapshot()}},
+        {type:'text', text:`種目: ${ex?.label || '筋力トレーニング'}
+撮影アングル: ${rtView.value === 'side' ? '真横' : '正面'}
+チェックポイント: ${ex?.hints || '関節の軌道、姿勢の安定性、可動域、代償動作'}
+${history ? `\n直近に伝えた指摘(繰り返しは避ける):\n${history}\n` : ''}
+この瞬間のフォームを上記に照らして厳しくチェックし、最も重大な1点を特定してください。
+
+以下のJSON形式のみで出力:
+{"severity":"ok|minor|major","cue":"音声用の短い指示。15〜25文字。命令形","detail":"観察根拠と修正方法。50〜80文字"}`}
+      ],
+      expectJson: true
+    });
+    if(!running) return;
+    const sev = ['ok','minor','major'].includes(r.severity) ? r.severity : 'minor';
+    pushCoachLog(null, sev, r.cue || '', r.detail || '');
+    if(r.cue) speak(r.cue, sev === 'major' ? 2 : 1);
+  }catch(e){
+    if(e.offline){
+      rtCoachText.innerHTML = '<span style="color:var(--muted)">オフラインのためAIコメントは利用できません(角度・レップ計測は動作中)</span>';
+    }
+  }finally{
+    coachBusy = false;
+  }
+}
+
+const SEV_COLOR = {ok:'var(--good)', minor:'var(--accent)', major:'var(--warn)'};
+const SEV_LABEL = {ok:'OK', minor:'要調整', major:'要修正'};
+
+function pushCoachLog(repNo, severity, cue, detail){
+  coachLog.push({repNo, severity, cue, detail});
+  rtCoachText.innerHTML = coachLog.slice(-3).reverse().map((c, i) => `
+    <div style="padding:${i ? '10px' : '0'} 0 ${i === 0 ? '10px' : '0'}; ${i ? 'border-top:1px solid var(--line);' : ''} opacity:${i ? .6 : 1};">
+      <div style="font-family:'Courier New',monospace; font-size:11px; color:${SEV_COLOR[c.severity]}; margin-bottom:4px;">
+        ${c.repNo ? `REP ${c.repNo} · ` : ''}${SEV_LABEL[c.severity]}
+      </div>
+      <div style="font-weight:700; font-size:14.5px; line-height:1.6;">${esc(c.cue)}</div>
+      ${c.detail ? `<div style="font-size:13px; color:var(--muted); line-height:1.7; margin-top:4px;">${esc(c.detail)}</div>` : ''}
+    </div>`).join('');
 }
 </script>
 </body>
