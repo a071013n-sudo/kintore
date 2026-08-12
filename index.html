@@ -121,6 +121,16 @@
   .telemetry-item .val{font-family:'Courier New',monospace; font-size:19px; font-weight:700; color:var(--accent);}
   .telemetry-item .lbl{font-size:10px; color:var(--muted); letter-spacing:.06em; margin-top:3px;}
 
+  .rt-rec{position:absolute; top:12px; left:12px; z-index:6; display:flex; align-items:center; gap:7px;
+    background:rgba(0,0,0,.68); color:#fff; font-family:'Courier New',monospace; font-size:12.5px;
+    padding:5px 10px; border-radius:3px;}
+  .rec-dot{width:9px; height:9px; border-radius:50%; background:var(--warn); animation:blink 1.4s infinite;}
+  @keyframes blink{0%,100%{opacity:1;} 50%{opacity:.25;}}
+
+  .host-notice{margin-top:18px; background:rgba(232,182,74,.09); border:1px solid var(--accent);
+    border-radius:4px; padding:13px 15px; font-size:13px; line-height:1.75; color:var(--ink);}
+  .host-notice b{color:var(--accent);}
+
   @media (prefers-reduced-motion: no-preference){.card{animation:rise .28s ease both;}}
   @keyframes rise{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
 </style>
@@ -136,6 +146,10 @@
   <div class="mode-tabs">
     <button class="mode-tab active" data-mode="upload">📹 動画分析</button>
     <button class="mode-tab" data-mode="realtime">⚡ リアルタイム</button>
+  </div>
+
+  <div class="wrap">
+    <div class="host-notice" style="display:none;"></div>
   </div>
 
   <!-- ============ UPLOAD MODE ============ -->
@@ -228,6 +242,12 @@
               <span>音声で読み上げる(画面を見られない撮影角度のとき)</span>
             </label>
           </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label class="check-inline">
+              <input type="checkbox" id="recEnabled" checked>
+              <span>動画を録画する(終了後に端末へダウンロードできます)</span>
+            </label>
+          </div>
         </div>
       </section>
     </div>
@@ -239,6 +259,7 @@
         <div class="rt-banner" id="rtBanner" style="display:none;"></div>
         <div class="rt-tag rep" id="rtRep" style="display:none;">レップ: 0</div>
         <div class="rt-tag detected" id="rtDetected" style="display:none;">判定中…</div>
+        <div class="rt-rec" id="rtRec" style="display:none;"><span class="rec-dot"></span><span id="rtRecTime">0:00</span></div>
         <div class="rt-countdown" id="rtCountdown">
           <span id="rtCdNum"></span><span class="cd-sub" id="rtCdSub"></span>
         </div>
@@ -270,6 +291,16 @@
 </div>
 
 <script>
+/* 初期化中の例外でUIが無反応になるのを防ぐため、エラーを画面に表示する */
+window.addEventListener('error', e => {
+  if(document.getElementById('bootError')) return;
+  const d = document.createElement('div');
+  d.id = 'bootError';
+  d.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#d1495b;color:#fff;padding:12px 16px;font:12px/1.6 monospace;z-index:9999;';
+  d.textContent = '⚠ スクリプトエラー: ' + (e.message || '') + ' (' + (e.filename || '').split('/').pop() + ':' + e.lineno + ')';
+  document.body.appendChild(d);
+});
+
 /* =========================================================
    1. 種目データ (ラベル・チェック観点・推奨アングル・判定ルール)
    rt: joint  … 判定に使う関節
@@ -449,17 +480,38 @@ const RT_JOINT_LABEL = {knee:'膝', hip:'股関節', elbow:'肘', shoulder:'肩'
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+/* =========================================================
+   0. 接続設定
+   GitHub Pages 等で使う場合は PROXY_URL に Cloudflare Worker の
+   URL を設定する。空のままなら Claude.ai 上での直接呼び出しになる。
+   ========================================================= */
+const CONFIG = {
+  PROXY_URL: '',                              // 例: 'https://form-check-proxy.xxxx.workers.dev'
+  MODEL: 'claude-haiku-4-5-20251001'          // プロキシ経由で使うモデル(安価なHaiku)
+};
+
+let appToken = '';   // 合言葉。メモリ上のみで保持し、保存しない
+
 const COACH_SYSTEM = 'あなたは妥協を許さないストイックなパーソナルトレーナーです。渡されたチェックポイントに照らして映像を厳密に確認し、体のどの部分がどうなっているかを根拠として明示した上で指摘してください。褒めるのは本当に問題がないときだけにし、少しでも粗があれば率直に指摘してください。曖昧な励ましや社交辞令は書かないでください。断定的な医学診断はせず、観察に基づく助言に留めます。';
 
-/** Claude API 呼び出しの共通ラッパー。ネットワーク不通を判別可能なエラーとして返す。 */
+/** Claude API 呼び出しの共通ラッパー。直接呼び出しとプロキシ経由を吸収する。 */
 async function callClaude({system, content, expectJson = false}){
+  const useProxy = !!CONFIG.PROXY_URL;
+  if(useProxy && !appToken){
+    const err = new Error('NO_TOKEN'); err.noToken = true; throw err;
+  }
+
+  const url = useProxy ? CONFIG.PROXY_URL : 'https://api.anthropic.com/v1/messages';
+  const headers = {'Content-Type':'application/json'};
+  if(useProxy) headers['X-App-Token'] = appToken;
+
   let res;
   try{
-    res = await fetch('https://api.anthropic.com/v1/messages', {
+    res = await fetch(url, {
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers,
       body: JSON.stringify({
-        model:'claude-sonnet-4-6',
+        model: useProxy ? CONFIG.MODEL : 'claude-sonnet-4-6',
         max_tokens:1000,
         system,
         messages:[{role:'user', content}]
@@ -473,6 +525,12 @@ async function callClaude({system, content, expectJson = false}){
   if(!res.ok){
     let detail = '';
     try{ const b = await res.json(); detail = b?.error?.message || ''; }catch(e){}
+    if(res.status === 401){
+      const err = new Error(detail || '合言葉が違います'); err.authFailed = true; throw err;
+    }
+    if(res.status === 429){
+      const err = new Error(detail || '本日の利用上限に達しました'); err.rateLimited = true; throw err;
+    }
     throw new Error(`APIエラー (status ${res.status})${detail ? ' — ' + detail : ''}`);
   }
   const data = await res.json();
@@ -487,7 +545,37 @@ async function callClaude({system, content, expectJson = false}){
   }
 }
 
-const OFFLINE_MSG = 'AI分析サーバーに接続できませんでした。この機能はClaude.ai上のプレビューでのみ動作します。HTMLファイルを直接ブラウザで開いている場合、AI分析は利用できません(骨格表示・角度計測・レップカウントは引き続き動作します)。';
+const OFFLINE_MSG = 'AI分析サーバーに接続できませんでした。Claude.ai上で開くか、プロキシ(CONFIG.PROXY_URL)を設定してください。骨格表示・角度計測・レップカウントは接続なしでも動作します。';
+
+/* AI が使える条件: Claude.ai 上 or プロキシ設定済み */
+const ON_CLAUDE_AI = /(^|\.)claude\.ai$|claudeusercontent\.com$/.test(location.hostname);
+const AI_AVAILABLE = ON_CLAUDE_AI || !!CONFIG.PROXY_URL;
+
+function showHostNotice(){
+  document.querySelectorAll('.host-notice').forEach(el => {
+    if(AI_AVAILABLE && !CONFIG.PROXY_URL){ el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    if(!AI_AVAILABLE){
+      el.innerHTML = '⚠ このページは Claude.ai の外で動作しており、プロキシも未設定のため ' +
+        '<b>AIによる分析・コメント機能は利用できません</b>。' +
+        'リアルタイムモードの骨格表示・関節角度の計測・レップカウント・可動域判定・音声読み上げは通常どおり動作します。';
+    }else{
+      el.innerHTML = `<div style="margin-bottom:9px;">🔑 AI機能を使うには合言葉を入力してください(保存されません)。</div>
+        <div style="display:flex; gap:8px;">
+          <input type="password" id="tokenInput" placeholder="合言葉" style="flex:1;">
+          <button id="tokenBtn" style="background:var(--accent); color:#1a1608; border:none; border-radius:3px; padding:0 18px; font-weight:800; cursor:pointer; font-family:inherit;">確定</button>
+        </div>`;
+      const apply = () => {
+        const v = document.getElementById('tokenInput').value.trim();
+        if(!v) return;
+        appToken = v;
+        el.innerHTML = '<span style="color:var(--good)">✓ 合言葉を設定しました。AI機能が利用できます。</span>';
+      };
+      document.getElementById('tokenBtn').addEventListener('click', apply);
+      document.getElementById('tokenInput').addEventListener('keydown', e => { if(e.key === 'Enter') apply(); });
+    }
+  });
+}
 
 /** 種目セレクトを生成 */
 function fillExerciseSelect(sel, {includeOther}){
@@ -532,9 +620,8 @@ let frames = [];
 
 fillExerciseSelect(upExercise, {includeOther:true});
 
-function updateViewTip(sel, tipEl){
-  const key = (sel === rtExercise && sel.value === 'auto' && autoKey) ? autoKey : sel.value;
-  const ex = EXERCISES[key];
+function updateViewTip(sel, tipEl, overrideKey){
+  const ex = EXERCISES[overrideKey || sel.value];
   tipEl.textContent = ex
     ? `推奨アングル: ${ex.view}`
     : '推奨アングル: 動作面が見える角度(多くの種目は真横)。自動判定では最初の1枚から種目を推定します。';
@@ -662,6 +749,13 @@ ${isAuto ? '  "detected_exercise": "判定した種目名",\n' : ''}  "overall":
     console.error(err);
     if(err.offline){
       upStatus.innerHTML = `<div class="status err">${OFFLINE_MSG}</div>`;
+    }else if(err.noToken){
+      upStatus.innerHTML = `<div class="status err">ページ上部で合言葉を入力してください。</div>`;
+    }else if(err.authFailed){
+      appToken = '';
+      upStatus.innerHTML = `<div class="status err">合言葉が違います。ページを再読み込みして入力し直してください。</div>`;
+    }else if(err.rateLimited){
+      upStatus.innerHTML = `<div class="status err">${esc(err.message)}</div>`;
     }else if(err.message === 'PARSE_FAILED'){
       upResults.innerHTML = `<div class="card overall"><h3>分析結果</h3><p style="white-space:pre-wrap;">${esc(err.raw)}</p></div>`;
       upStatus.innerHTML = '';
@@ -717,6 +811,10 @@ const rtCdNum = $('rtCdNum'), rtCdSub = $('rtCdSub'), rtStartBtn = $('rtStartBtn
 const rtStatus = $('rtStatus'), rtTelemetry = $('rtTelemetry'), telemetryGrid = $('telemetryGrid');
 const rtCoachCard = $('rtCoachCard'), rtCoachText = $('rtCoachText'), rtSummary = $('rtSummary');
 const ttsEnabled = $('ttsEnabled'), rtCountdownSec = $('rtCountdownSec');
+const recEnabled = $('recEnabled'), rtRec = $('rtRec'), rtRecTime = $('rtRecTime');
+
+// 録画
+let recorder = null, recChunks = [], recStartAt = 0, recTimer = null, recUrl = null;
 
 const LM = {lSh:11, rSh:12, lEl:13, rEl:14, lWr:15, rWr:16, lHip:23, rHip:24, lKn:25, rKn:26, lAn:27, rAn:28};
 const JOINT_IDS = {
@@ -775,6 +873,88 @@ function speak(text, priority = 1){
   synth.speak(u);
 }
 
+/* ---- 録画 ---- */
+/** mp4 を優先(iOS写真アプリや各種プレイヤーとの互換性が高いため) */
+function pickRecMime(){
+  const cands = ['video/mp4;codecs=avc1', 'video/mp4',
+                 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+  for(const c of cands){
+    if(window.MediaRecorder?.isTypeSupported?.(c)) return c;
+  }
+  return '';
+}
+
+function startRecording(){
+  if(!recEnabled.checked || !stream || !window.MediaRecorder) return;
+  try{
+    const mime = pickRecMime();
+    recChunks = [];
+    recorder = new MediaRecorder(stream, mime ? {mimeType:mime, videoBitsPerSecond:2_500_000} : undefined);
+    recorder.ondataavailable = e => { if(e.data.size) recChunks.push(e.data); };
+    recorder.onstop = finalizeRecording;
+    recorder.start(1000);
+    recStartAt = Date.now();
+    rtRec.style.display = 'flex';
+    recTimer = setInterval(() => {
+      const s = Math.floor((Date.now() - recStartAt) / 1000);
+      rtRecTime.textContent = `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+    }, 500);
+  }catch(e){
+    console.error(e);
+    recorder = null;
+    rtStatus.innerHTML = '<div class="status err">録画を開始できませんでした(この端末では非対応の可能性があります)</div>';
+  }
+}
+
+function stopRecording(){
+  clearInterval(recTimer); recTimer = null;
+  rtRec.style.display = 'none';
+  if(recorder && recorder.state !== 'inactive'){
+    try{ recorder.stop(); }catch(e){ console.error(e); }
+  }
+}
+
+function finalizeRecording(){
+  if(!recChunks.length){ recorder = null; return; }
+  const type = recorder?.mimeType || 'video/mp4';
+  const blob = new Blob(recChunks, {type});
+  recChunks = [];
+  recorder = null;
+
+  if(recUrl) URL.revokeObjectURL(recUrl);
+  recUrl = URL.createObjectURL(blob);
+
+  const ext = type.includes('mp4') ? 'mp4' : 'webm';
+  const k = activeKey();
+  const name = EXERCISES[k]?.label?.replace(/[\/\s]/g, '') || 'training';
+  const d = new Date();
+  const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`
+              + `-${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
+  const filename = `${name}_${stamp}.${ext}`;
+  const mb = (blob.size / 1048576).toFixed(1);
+  const secs = Math.round((Date.now() - recStartAt) / 1000);
+
+  const card = document.createElement('div');
+  card.className = 'card overall';
+  card.innerHTML = `
+    <h3><span class="dot" style="background:var(--warn)"></span>録画データ</h3>
+    <video src="${recUrl}" controls playsinline style="width:100%; border-radius:3px; background:#000;"></video>
+    <p style="font-family:'Courier New',monospace; font-size:12px; color:var(--muted); margin:10px 0 12px;">
+      ${esc(filename)} · ${mb}MB · ${Math.floor(secs/60)}分${secs%60}秒
+    </p>
+    <a id="recDl" href="${recUrl}" download="${esc(filename)}"
+       style="display:block; text-align:center; background:var(--accent); color:#1a1608; padding:14px;
+              border-radius:3px; font-weight:900; text-decoration:none; letter-spacing:.04em;">
+      端末にダウンロード
+    </a>
+    <p style="font-size:12.5px; color:var(--muted); line-height:1.8; margin-top:12px;">
+      この動画を Claude.ai で開いた「動画分析」タブにアップロードすると、AIコーチによる詳細レビューが受けられます。
+      ${ext === 'webm' ? '<br>※この端末では webm 形式で保存されます。' : ''}
+    </p>`;
+  rtSummary.appendChild(card);
+  card.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
 function activeKey(){ return rtExercise.value === 'auto' ? autoKey : rtExercise.value; }
 function activeRule(){ const k = activeKey(); return k ? EXERCISES[k]?.rt : null; }
 
@@ -791,6 +971,7 @@ rtStartBtn.addEventListener('click', () => running ? stopRealtime() : startRealt
 async function startRealtime(){
   rtStartBtn.disabled = true;
   rtSummary.innerHTML = '';
+  let stage = 'model';
   try{
     if(!landmarker){
       rtStatus.innerHTML = '<div class="status">姿勢推定モデルを読み込んでいます…(初回のみ時間がかかります)</div>';
@@ -804,6 +985,7 @@ async function startRealtime(){
         runningMode:'VIDEO', numPoses:1
       });
     }
+    stage = 'camera';
     stream = await navigator.mediaDevices.getUserMedia({
       video:{facingMode:rtFacing.value, width:{ideal:640}, height:{ideal:480}}, audio:false
     });
@@ -837,8 +1019,14 @@ async function startRealtime(){
     startCountdown(+rtCountdownSec.value);
   }catch(err){
     console.error(err);
-    rtStatus.innerHTML = `<div class="status err">カメラまたはモデルの起動に失敗しました: ${esc(err.message || String(err))}<br>
-      プレビュー内ではカメラ権限がブロックされる場合があります。HTMLファイルを直接ブラウザで開くとカメラは動作しますが、その場合AIコメントは利用できません。</div>`;
+    const msg = stage === 'model'
+      ? `<b>姿勢推定モデルを読み込めませんでした</b>(${esc(err.message || String(err))})<br>
+         Claude.aiのプレビュー内では外部CDNへの通信が遮断されるため、リアルタイムモードは動作しません。
+         GitHub Pages上、またはHTMLファイルを直接ブラウザで開いてお試しください。`
+      : `<b>カメラを起動できませんでした</b>(${esc(err.message || String(err))})<br>
+         カメラ権限が許可されているか、他のアプリがカメラを使用していないかご確認ください。
+         iframe内ではカメラがブロックされる場合があります。`;
+    rtStatus.innerHTML = `<div class="status err">${msg}</div>`;
   }finally{
     rtStartBtn.disabled = false;
   }
@@ -849,7 +1037,12 @@ function stopRealtime(){
   running = false; analysisActive = false;
   clearInterval(countdownTimer); countdownTimer = null;
   if(rafId) cancelAnimationFrame(rafId);
-  stream?.getTracks().forEach(t => t.stop()); stream = null;
+
+  // 録画を先に閉じる。トラックを即座に止めると末尾が欠けるため、少し猶予を置く
+  stopRecording();
+  const s = stream; stream = null;
+  setTimeout(() => s?.getTracks().forEach(t => t.stop()), 400);
+
   rtVideo.srcObject = null;
   wakeLock?.release?.().catch(()=>{}); wakeLock = null;
   rtStartBtn.textContent = 'カメラを開始する';
@@ -909,6 +1102,7 @@ function startCountdown(sec){
         resetRepState();
         lastCoachAt = performance.now() - COACH_INTERVAL;
         rtCoachText.textContent = '観察中…';
+        startRecording();
       }, 500);
     }
   }, 1000);
@@ -1105,7 +1299,7 @@ async function detectExercise(){
     if(EXERCISES[r.exercise_key]){
       autoKey = r.exercise_key;
       rtDetected.textContent = '判定: ' + EXERCISES[autoKey].label;
-      updateViewTip(rtExercise, $('rtViewTip'));
+      updateViewTip(rtExercise, $('rtViewTip'), autoKey);
     }else{
       autoKey = null;
       rtDetected.textContent = '判定: 不明(手動選択推奨)';
@@ -1194,6 +1388,11 @@ ${history ? `直近に伝えた指摘(同じ内容の繰り返しは避け、改
   }catch(e){
     if(e.offline){
       rtCoachText.innerHTML = '<span style="color:var(--muted)">オフラインのためAIコメントは利用できません(角度・レップ計測は動作中)</span>';
+    }else if(e.noToken || e.authFailed){
+      appToken = '';
+      rtCoachText.innerHTML = '<span style="color:var(--warn)">合言葉が未設定または不正です。ページ上部で入力してください(角度・レップ計測は動作中)</span>';
+    }else if(e.rateLimited){
+      rtCoachText.innerHTML = '<span style="color:var(--warn)">' + esc(e.message) + '(角度・レップ計測は動作中)</span>';
     }
     console.error(e);
   }finally{
@@ -1232,14 +1431,18 @@ ${history ? `\n直近に伝えた指摘(繰り返しは避ける):\n${history}\n
   }catch(e){
     if(e.offline){
       rtCoachText.innerHTML = '<span style="color:var(--muted)">オフラインのためAIコメントは利用できません(角度・レップ計測は動作中)</span>';
+    }else if(e.noToken || e.authFailed){
+      appToken = '';
+      rtCoachText.innerHTML = '<span style="color:var(--warn)">合言葉が未設定または不正です。ページ上部で入力してください(角度・レップ計測は動作中)</span>';
+    }else if(e.rateLimited){
+      rtCoachText.innerHTML = '<span style="color:var(--warn)">' + esc(e.message) + '(角度・レップ計測は動作中)</span>';
     }
   }finally{
     coachBusy = false;
   }
 }
 
-const SEV_COLOR = {ok:'var(--good)', minor:'var(--accent)', major:'var(--warn)'};
-const SEV_LABEL = {ok:'OK', minor:'要調整', major:'要修正'};
+const SEV_COLOR = {ok:'var(--good)', minor:'var(--accent)', major:'var(--warn)'};const SEV_LABEL = {ok:'OK', minor:'要調整', major:'要修正'};
 
 function pushCoachLog(repNo, severity, cue, detail){
   coachLog.push({repNo, severity, cue, detail});
@@ -1252,6 +1455,8 @@ function pushCoachLog(repNo, severity, cue, detail){
       ${c.detail ? `<div style="font-size:13px; color:var(--muted); line-height:1.7; margin-top:4px;">${esc(c.detail)}</div>` : ''}
     </div>`).join('');
 }
+
+showHostNotice();
 </script>
 </body>
 </html>
