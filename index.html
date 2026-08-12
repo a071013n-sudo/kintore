@@ -316,6 +316,25 @@
   .telemetry-item{text-align:center; background:var(--panel-2); border-radius:3px; padding:10px 4px;}
   .telemetry-item .val{font-family:'Courier New', monospace; font-size:19px; font-weight:700; color:var(--accent);}
   .telemetry-item .lbl{font-size:10px; color:var(--muted); letter-spacing:.06em; text-transform:uppercase; margin-top:3px;}
+  .rt-countdown{
+    position:absolute; inset:0;
+    display:none; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.5);
+    z-index:10;
+    font-family:'Courier New', monospace;
+    font-size:min(22vw, 110px);
+    font-weight:900;
+    color:var(--accent);
+    letter-spacing:.02em;
+  }
+  .rt-countdown .cd-sub{
+    position:absolute;
+    bottom:14%;
+    font-size:14px;
+    font-weight:700;
+    letter-spacing:.08em;
+    color:var(--ink);
+  }
 </style>
 </head>
 <body>
@@ -462,6 +481,7 @@
         <div class="rt-banner" id="rtBanner" style="display:none;"></div>
         <div class="rt-rep" id="rtRep" style="display:none;">レップ: 0</div>
         <div class="rt-rep" id="rtDetectedLabel" style="display:none; left:12px; right:auto;">判定中…</div>
+        <div class="rt-countdown" id="rtCountdown"><span id="rtCountdownNum"></span><span class="cd-sub" id="rtCountdownSub"></span></div>
       </div>
     </section>
 
@@ -891,6 +911,9 @@ const rtCanvas = document.getElementById('rtCanvas');
 const rtBanner = document.getElementById('rtBanner');
 const rtRep = document.getElementById('rtRep');
 const rtDetectedLabel = document.getElementById('rtDetectedLabel');
+const rtCountdown = document.getElementById('rtCountdown');
+const rtCountdownNum = document.getElementById('rtCountdownNum');
+const rtCountdownSub = document.getElementById('rtCountdownSub');
 const rtTelemetry = document.getElementById('rtTelemetry');
 const telemetryGrid = document.getElementById('telemetryGrid');
 const rtCoachCard = document.getElementById('rtCoachCard');
@@ -942,6 +965,9 @@ let minAngleInRep = 999;
 let valgusActive = false;
 let autoDetectedKey = null;
 let autoDetecting = false;
+let analysisActive = false;
+let countdownTimer = null;
+const START_COUNTDOWN_SECONDS = 10;
 let lastCoachCallAt = 0;
 let coachInFlight = false;
 let bannerTimeout = null;
@@ -992,6 +1018,7 @@ async function startRealtime(){
     rtCanvas.height = rtVideo.videoHeight;
     rtRunning = true;
     repCount = 0; repPhase = 'up'; minAngleInRep = 999; valgusActive = false;
+    analysisActive = false;
     rtRep.style.display = 'block';
     rtRep.textContent = 'レップ: 0';
     rtTelemetry.style.display = 'block';
@@ -1009,6 +1036,7 @@ async function startRealtime(){
       rtDetectedLabel.style.display = 'none';
     }
     rtLoop();
+    runStartCountdown(START_COUNTDOWN_SECONDS);
   }catch(err){
     console.error(err);
     rtStatus.innerHTML = `<div class="status err">カメラまたはモデルの起動に失敗しました: ${escapeHtml(err.message || String(err))}<br>プレビュー内ではカメラ権限がブロックされる場合があります。ダウンロードしたHTMLファイルを直接ブラウザで開いてお試しください。</div>`;
@@ -1019,6 +1047,9 @@ async function startRealtime(){
 
 function stopRealtime(){
   rtRunning = false;
+  analysisActive = false;
+  if(countdownTimer) clearInterval(countdownTimer);
+  rtCountdown.style.display = 'none';
   if(rtRafId) cancelAnimationFrame(rtRafId);
   if(rtStream){ rtStream.getTracks().forEach(t => t.stop()); rtStream = null; }
   rtVideo.srcObject = null;
@@ -1026,6 +1057,37 @@ function stopRealtime(){
   rtBanner.style.display = 'none';
   rtDetectedLabel.style.display = 'none';
   if('speechSynthesis' in window) window.speechSynthesis.cancel();
+}
+
+function runStartCountdown(seconds){
+  let remaining = seconds;
+  rtCountdown.style.display = 'flex';
+  rtCountdownNum.textContent = remaining;
+  rtCountdownSub.textContent = 'スタートポジションを作ってください';
+  speak(`スタートポジションを作ってください。${remaining}秒`);
+
+  countdownTimer = setInterval(() => {
+    if(!rtRunning){ clearInterval(countdownTimer); return; }
+    remaining--;
+    if(remaining > 0){
+      rtCountdownNum.textContent = remaining;
+      speak(String(remaining));
+    }else{
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+      rtCountdownNum.textContent = 'START';
+      rtCountdownSub.textContent = '';
+      speak('スタート');
+      setTimeout(() => {
+        if(!rtRunning) return;
+        rtCountdown.style.display = 'none';
+        analysisActive = true;
+        repCount = 0; repPhase = 'up'; minAngleInRep = 999; valgusActive = false;
+        rtRep.textContent = 'レップ: 0';
+        lastCoachCallAt = performance.now() - COACH_INTERVAL_MS;
+      }, 500);
+    }
+  }, 1000);
 }
 
 function getEffectiveExerciseKey(){
@@ -1093,7 +1155,7 @@ function rtLoop(){
     const lm = result.landmarks[0];
     drawSkeleton(ctx, lm);
     processAngles(lm);
-    maybeCallCoach(now);
+    if(analysisActive) maybeCallCoach(now);
   }
 
   rtRafId = requestAnimationFrame(rtLoop);
@@ -1156,6 +1218,7 @@ function processAngles(lm){
 
   const rule = REALTIME_RULES[getEffectiveExerciseKey()];
   if(!rule) return;
+  if(!analysisActive) return;
 
   const primaryAngle = rule.joint === 'knee' ? kneeAngle : (rule.joint === 'hip' ? hipAngle : elbowAngle);
   if(isNaN(primaryAngle)) return;
@@ -1232,7 +1295,7 @@ async function maybeCallCoach(now){
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 1000,
-        system: 'あなたはリアルタイムでトレーニングを見ているコーチです。1枚の静止画から、その瞬間のフォームについて一言だけ、日本語でカジュアルかつ簡潔にアドバイスしてください。20〜40文字程度。JSONや記号は使わず、アドバイス文のみを出力してください。',
+        system: 'あなたは妥協を許さないストイックなパーソナルトレーナーです。1枚の静止画からその瞬間のフォームを見て、日本語で一言だけ指摘してください。褒めるのは本当に完璧なときだけにし、少しでも粗があれば率直に指摘してください。曖昧な励ましや社交辞令は禁止です。「もっと深く」「膝が流れてる」のように、体育会系コーチのような短く言い切る口調にしてください。20〜40文字程度。JSONや記号は使わず、アドバイス文のみを出力してください。',
         messages: [{
           role: 'user',
           content: [
