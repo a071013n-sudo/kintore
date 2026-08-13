@@ -72,7 +72,8 @@
         { id: 'valgusL', type: 'medialDeviation', joint: 'knee', from: 'hip', to: 'ankle', side: 'left' },
         { id: 'valgusR', type: 'medialDeviation', joint: 'knee', from: 'hip', to: 'ankle', side: 'right' },
         { id: 'kneeAsym', type: 'lrDifference', of: 'angle', points: ['hip', 'knee', 'ankle'] },
-        { id: 'heelLift', type: 'verticalGap', a: 'heel', b: 'foot', side: 'auto', normalizeBy: 'torso' },
+        { id: 'heelLift', type: 'verticalGap', a: 'heel', b: 'foot', side: 'auto',
+          normalizeBy: 'torso', baseline: true },
       ],
       rep: {
         byView: {
@@ -117,8 +118,9 @@
         },
         {
           id: 'heelLift', metric: 'heelLift', phases: ['bottom'], view: 'side',
-          warn: { op: '>', value: 0.035 },
-          strikes: 6, cooldownMs: 6000,
+          // 静止時からの変化量。足部のランドマークは推定精度が低いので余裕を取る
+          warn: { op: '>', value: 0.055 },
+          strikes: 8, cooldownMs: 6000,
           message: { warn: '踵が浮いている。足裏全体で踏め。' },
         },
       ],
@@ -227,6 +229,265 @@
         },
       ],
     },
+
+    /* ------------------------ ブルガリアンスクワット ------------------------ */
+    /* 片脚種目。後ろ足を台に乗せるため、接地している前脚のほうが足首が
+       画面上で低い。エンジンはこれで作用脚を自動判定する（side:'workingLeg'）。
+       左右差を見る lrDifference は、前後で脚の角度が構造的に違うので使えない。 */
+    bulgarianSplitSquat: {
+      id: 'bulgarianSplitSquat',
+      label: 'ブルガリアンスクワット',
+      recommendedView: 'front',
+      supportedViews: ['front', 'side'],
+      framing: 'fullBody',
+      safetyNote: '接地している前脚を自動で判定します。後ろ足は台に乗せてください。',
+      viewHint: {
+        front: '正面から腰の高さで撮影。膝の内側の崩れと骨盤の傾きを見る。',
+        side: '真横から腰の高さで撮影。深さと上体の角度を見る。',
+      },
+      metrics: [
+        { id: 'kneeAngle', type: 'angle', points: ['hip', 'knee', 'ankle'], side: 'workingLeg' },
+        { id: 'hipHeight', type: 'segmentRatio', from: 'hip', to: 'ankle', side: 'workingLeg', normalizeBy: 'torso' },
+        { id: 'trunkLean', type: 'leanFromVertical', from: 'hip', to: 'shoulder', side: 'mid' },
+        { id: 'valgus', type: 'medialDeviation', joint: 'knee', from: 'hip', to: 'ankle', side: 'workingLeg' },
+        // 骨盤が水平を保てているか。片脚支持で崩れやすい
+        { id: 'pelvicTilt', type: 'tiltFromHorizontal', point: 'hip', baseline: true },
+      ],
+      rep: {
+        byView: {
+          // 側面視: 前脚の屈曲角がそのまま使える
+          side: { metric: 'kneeAngle', top: 165, bottom: 88,
+                  direction: 'decreasing', minRepMs: 800, minProgress: 0.35 },
+          // 正面視: 屈曲は矢状面の動きで見えない。股関節-足首距離の縮みで取る
+          front: { metric: 'hipHeight',
+                   autoTop: { bottomFactor: 0.72, sampleMs: 1200 },
+                   direction: 'decreasing', minRepMs: 800, minProgress: 0.35 },
+        },
+      },
+      checkpoints: [
+        {
+          id: 'valgus', metric: 'valgus', phases: ['descending', 'bottom', 'ascending'], view: 'front',
+          warn: { op: '>', value: 0.10 }, danger: { op: '>', value: 0.18 },
+          strikes: 4, cooldownMs: 3500,
+          message: { warn: '前脚の膝が内に入っている。外へ割れ。', danger: '膝が潰れている。止めろ。' },
+        },
+        {
+          id: 'pelvicDrop', metric: 'pelvicTilt', phases: ['descending', 'bottom', 'ascending'], view: 'front',
+          warn: { op: '>', value: 8 }, danger: { op: '>', value: 15 },
+          strikes: 5, cooldownMs: 4500,
+          message: { warn: '骨盤が傾いている。腰を水平に保て。', danger: '骨盤が落ちている。重量を下げろ。' },
+        },
+        {
+          id: 'lateralLean', metric: 'trunkLean', phases: ['descending', 'bottom', 'ascending'], view: 'front',
+          warn: { op: '>', value: 12 }, danger: { op: '>', value: 20 },
+          strikes: 5, cooldownMs: 5000,
+          message: { warn: '上体が横に流れている。真っ直ぐ沈め。', danger: '支えきれていない。重量を下げろ。' },
+        },
+        {
+          id: 'trunkCollapse', metric: 'trunkLean', phases: ['descending', 'bottom', 'ascending'], view: 'side',
+          warn: { op: '>', value: 42 }, danger: { op: '>', value: 58 },
+          strikes: 5, cooldownMs: 4000,
+          message: { warn: '上体が突っ込んでいる。胸を張れ。', danger: '前傾しすぎだ。重量を下げろ。' },
+        },
+      ],
+      repChecks: [
+        {
+          id: 'depth', field: 'romPercent',
+          warn: { op: '<', value: 82 }, danger: { op: '<', value: 60 },
+          message: { warn: '浅い。前脚をもう一段落とせ。', danger: '可動域が全く足りていない。' },
+          cooldownMs: 4000,
+        },
+        {
+          id: 'tempo', field: 'eccentricMs',
+          warn: { op: '<', value: 600 },
+          message: { warn: '落ちるのが速い。片脚で受け止めろ。' },
+          cooldownMs: 8000,
+        },
+      ],
+    },
+
+    /* ============================ ダンベル種目 ============================
+       いずれも上半身だけを画角に入れるのが普通なので framing:'upperBody'。
+       休止位置が「下」にある種目（＝先に挙げて後で下ろす）は
+       eccentricFirst:false を指定し、テンポの「下ろし／挙上」を正しく記録する。
+       ==================================================================== */
+
+    /* ----------------------------- ダンベルカール ---------------------------- */
+    dumbbellCurl: {
+      id: 'dumbbellCurl',
+      label: 'ダンベルカール',
+      recommendedView: 'side',
+      supportedViews: ['front', 'side'],
+      framing: 'upperBody',
+      viewHint: {
+        side: '真横から胸の高さで撮影。肘の位置と反動を見る。足元は映らなくてよい。',
+        front: '正面から胸の高さで撮影。左右差を見る。',
+      },
+      phaseLabels: { top: '構え', descending: '挙上', bottom: '収縮', ascending: '下ろし' },
+      metrics: [
+        { id: 'elbowAngle', type: 'angle', points: ['shoulder', 'elbow', 'wrist'], side: 'auto' },
+        // 上腕が体側から前後にどれだけ振れたか。肘を固定できているかの指標
+        { id: 'upperArmSwing', type: 'angle', points: ['hip', 'shoulder', 'elbow'], side: 'auto', baseline: true },
+        { id: 'trunkLean', type: 'leanFromVertical', from: 'hip', to: 'shoulder', side: 'mid' },
+        { id: 'elbowAsym', type: 'lrDifference', of: 'angle', points: ['shoulder', 'elbow', 'wrist'] },
+      ],
+      rep: {
+        metric: 'elbowAngle', top: 158, bottom: 52,
+        direction: 'decreasing', eccentricFirst: false,
+        minRepMs: 700, minProgress: 0.40,
+      },
+      checkpoints: [
+        {
+          id: 'elbowDrift', metric: 'upperArmSwing', phases: ['descending', 'bottom', 'ascending'], view: 'side',
+          warn: { op: '>', value: 20 }, danger: { op: '>', value: 35 },
+          strikes: 5, cooldownMs: 4000,
+          message: { warn: '肘が前に出ている。脇に固定しろ。', danger: '肘が泳いでいる。重量を落とせ。' },
+        },
+        {
+          id: 'swing', metric: 'trunkLean', phases: ['descending', 'ascending'], view: 'side',
+          warn: { op: '>', value: 12 }, danger: { op: '>', value: 22 },
+          strikes: 4, cooldownMs: 3500,
+          message: { warn: '反動を使うな。上体を止めろ。', danger: '振り上げている。重量を落とせ。' },
+        },
+        {
+          id: 'asymmetry', metric: 'elbowAsym', phases: ['bottom'], view: 'front',
+          warn: { op: '>', value: 18 },
+          strikes: 5, cooldownMs: 6000,
+          message: { warn: '左右差が出ている。弱い側に合わせろ。' },
+        },
+      ],
+      repChecks: [
+        {
+          id: 'rom', field: 'romPercent',
+          warn: { op: '<', value: 85 },
+          message: { warn: '曲げ切れていない。最後まで絞れ。' },
+          cooldownMs: 5000,
+        },
+        {
+          id: 'tempo', field: 'eccentricMs',
+          warn: { op: '<', value: 550 },
+          message: { warn: '下ろしが速い。ネガティブを効かせろ。' },
+          cooldownMs: 8000,
+        },
+      ],
+    },
+
+    /* -------------------------- ダンベルショルダープレス ------------------------- */
+    dumbbellShoulderPress: {
+      id: 'dumbbellShoulderPress',
+      label: 'ダンベルショルダープレス',
+      recommendedView: 'front',
+      supportedViews: ['front', 'side'],
+      framing: 'upperBody',
+      safetyNote: '立位を想定。腰の反りは体幹角からの推定にとどまる。',
+      viewHint: {
+        front: '正面から胸の高さで撮影。腕を上げても頭と手が画角に入ること。',
+        side: '真横から胸の高さで撮影。腰の反りを見る。',
+      },
+      phaseLabels: { top: '構え', descending: '挙上', bottom: 'ロックアウト', ascending: '下ろし' },
+      metrics: [
+        { id: 'elbowAngle', type: 'angle', points: ['shoulder', 'elbow', 'wrist'], side: 'auto' },
+        { id: 'trunkLean', type: 'leanFromVertical', from: 'hip', to: 'shoulder', side: 'mid' },
+        { id: 'elbowAsym', type: 'lrDifference', of: 'angle', points: ['shoulder', 'elbow', 'wrist'] },
+      ],
+      rep: {
+        metric: 'elbowAngle', top: 170, bottom: 78,
+        direction: 'increasing', eccentricFirst: false,
+        minRepMs: 800, minProgress: 0.40,
+      },
+      checkpoints: [
+        {
+          id: 'layback', metric: 'trunkLean', phases: ['descending', 'bottom'], view: 'side',
+          warn: { op: '>', value: 18 }, danger: { op: '>', value: 30 },
+          strikes: 4, cooldownMs: 4000,
+          message: { warn: '腰が反っている。腹を締めろ。', danger: '腰が危険だ。重量を落とせ。' },
+        },
+        {
+          id: 'asymmetry', metric: 'elbowAsym', phases: ['bottom'], view: 'front',
+          warn: { op: '>', value: 18 },
+          strikes: 5, cooldownMs: 6000,
+          message: { warn: '左右差が出ている。押し切れていない側がある。' },
+        },
+      ],
+      repChecks: [
+        {
+          id: 'lockout', field: 'romPercent',
+          warn: { op: '<', value: 88 }, danger: { op: '<', value: 65 },
+          message: { warn: '押し切れていない。肘を伸ばせ。', danger: '可動域が全く足りていない。' },
+          cooldownMs: 5000,
+        },
+        {
+          id: 'tempo', field: 'eccentricMs',
+          warn: { op: '<', value: 600 },
+          message: { warn: '下ろしが速い。落とすな。' },
+          cooldownMs: 8000,
+        },
+      ],
+    },
+
+    /* --------------------------- ダンベルサイドレイズ -------------------------- */
+    /* 外転は前額面の動きなので正面視で素直に測れる。側面視では測れない。 */
+    dumbbellLateralRaise: {
+      id: 'dumbbellLateralRaise',
+      label: 'ダンベルサイドレイズ',
+      recommendedView: 'front',
+      supportedViews: ['front'],
+      framing: 'upperBody',
+      viewHint: { front: '正面から胸の高さで撮影。腕を水平に上げても手が画角に入ること。' },
+      phaseLabels: { top: '構え', descending: '挙上', bottom: '最高点', ascending: '下ろし' },
+      metrics: [
+        // 肩の外転角。腕を下ろすと約10度、水平で約90度
+        { id: 'abduction', type: 'angle', points: ['hip', 'shoulder', 'elbow'], side: 'auto' },
+        { id: 'elbowAngle', type: 'angle', points: ['shoulder', 'elbow', 'wrist'], side: 'auto' },
+        { id: 'trunkLean', type: 'leanFromVertical', from: 'hip', to: 'shoulder', side: 'mid' },
+        { id: 'abductionAsym', type: 'lrDifference', of: 'angle', points: ['hip', 'shoulder', 'elbow'] },
+      ],
+      rep: {
+        metric: 'abduction', top: 88, bottom: 12,
+        direction: 'increasing', eccentricFirst: false,
+        minRepMs: 800, minProgress: 0.45,
+      },
+      checkpoints: [
+        {
+          id: 'tooHigh', metric: 'abduction', phases: ['bottom'], view: 'front',
+          warn: { op: '>', value: 105 },
+          strikes: 4, cooldownMs: 4500,
+          message: { warn: '上げすぎだ。肩の高さで止めろ。' },
+        },
+        {
+          id: 'swing', metric: 'trunkLean', phases: ['descending', 'ascending'], view: 'front',
+          warn: { op: '>', value: 10 }, danger: { op: '>', value: 18 },
+          strikes: 4, cooldownMs: 3500,
+          message: { warn: '反動を使うな。上体を止めろ。', danger: '体で振り上げている。重量を落とせ。' },
+        },
+        {
+          id: 'elbowBend', metric: 'elbowAngle', phases: ['bottom'], view: 'front',
+          warn: { op: '<', value: 140 },
+          strikes: 5, cooldownMs: 5000,
+          message: { warn: '肘が曲がりすぎだ。腕を張れ。' },
+        },
+        {
+          id: 'asymmetry', metric: 'abductionAsym', phases: ['bottom'], view: 'front',
+          warn: { op: '>', value: 15 },
+          strikes: 5, cooldownMs: 6000,
+          message: { warn: '左右の高さが違う。低い側に合わせろ。' },
+        },
+      ],
+      repChecks: [
+        {
+          id: 'rom', field: 'romPercent',
+          warn: { op: '<', value: 85 },
+          message: { warn: '上げ切っていない。肩の高さまで。' },
+          cooldownMs: 5000,
+        },
+        {
+          id: 'tempo', field: 'eccentricMs',
+          warn: { op: '<', value: 700 },
+          message: { warn: '下ろしが速い。重力に任せるな。' },
+          cooldownMs: 8000,
+        },
+      ],
+    },
   };
 
   /* =======================================================================
@@ -280,8 +541,14 @@
       const s = ctx.resolveSide(def.side);
       const pts = def.points.map(n => ctx.P(n, s));
       if (pts.some(p => !p)) return null;
-      const a = angleAt(pts[0], pts[1], pts[2]);
+      let a = angleAt(pts[0], pts[1], pts[2]);
       if (a == null) return null;
+      // baseline:true なら構えからの変化量を見る。静止時の角度には
+      // 姿勢や体格の個人差が乗るため、絶対値で閾値を引くと人によって外れる。
+      if (def.baseline) {
+        a -= ctx.baseline('ang:' + def.points.join('-') + ':' + s, a, def.baselineSamples || 25);
+        a = Math.abs(a);
+      }
       return { value: a, visibility: Math.min.apply(null, pts.map(p => p.v)) };
     },
 
@@ -318,7 +585,7 @@
 
     // 膝の内側偏位。正 = 内に入っている。正面視でのみ有効（側面では自動的にnull）
     medialDeviation(def, ctx) {
-      const side = def.side;
+      const side = ctx.resolveSide(def.side);
       const joint = ctx.P(def.joint, side);
       const from = ctx.P(def.from, side);
       const to = ctx.P(def.to, side);
@@ -335,6 +602,23 @@
         value: (lateralSign * (lineX - joint.x)) / hipW,
         visibility: Math.min(joint.v, from.v, to.v),
       };
+    },
+
+    // 左右2点を結ぶ線の水平からの傾き。骨盤の落ち込み（トレンデレンブルグ）用。
+    // 側面視では左右が重なるので自動的に測定不能になる。
+    tiltFromHorizontal(def, ctx) {
+      const l = ctx.P(def.point, 'left'), r = ctx.P(def.point, 'right');
+      if (!l || !r) return null;
+      const dx = r.x - l.x, dy = r.y - l.y;
+      if (Math.abs(dx) < 0.02) return null;   // 側面視では左右が重なり測れない
+      // カメラに正対しているか背を向けているかで左右の並びが逆になる。
+      // 符号を正規化しないと、正対時に約180度と読んで常時発火する。
+      let deg = Math.atan2(dx < 0 ? -dy : dy, Math.abs(dx)) * 180 / Math.PI;
+      // カメラ自体が傾いていれば全体が傾く。静止時を基準にすれば打ち消せる。
+      if (def.baseline) {
+        deg -= ctx.baseline('tilt:' + def.point, deg, def.baselineSamples || 25);
+      }
+      return { value: Math.abs(deg), visibility: Math.min(l.v, r.v) };
     },
 
     // 2点を結ぶ直線からの垂直方向のズレ。正 = 下に落ちている
@@ -357,7 +641,14 @@
       const a = ctx.P(def.a, s), b = ctx.P(def.b, s);
       const norm = ctx.normalizer(def.normalizeBy);
       if (!a || !b || !norm) return null;
-      return { value: (b.y - a.y) / norm, visibility: Math.min(a.v, b.v) };
+      let v = (b.y - a.y) / norm;
+      // baseline:true なら静止時の値を引く。踵とつま先の高さの差は
+      // 足の形・靴・カメラの見下ろし角で人ごとに違うので、
+      // 絶対値で閾値を引くと接地していても警告が出る。
+      if (def.baseline) {
+        v -= ctx.baseline('vg:' + def.a + ':' + def.b + ':' + s, v, def.baselineSamples || 25);
+      }
+      return { value: v, visibility: Math.min(a.v, b.v) };
     },
 
     horizontalDrift(def, ctx) {
@@ -365,7 +656,7 @@
       const p = ctx.P(def.point, s);
       const norm = ctx.normalizer(def.normalizeBy);
       if (!p || !norm) return null;
-      const base = ctx.baseline(def.point + ':' + s, p.x);
+      const base = ctx.baseline(def.point + ':' + s, p.x, 25);
       return { value: Math.abs(p.x - base) / norm, visibility: p.v };
     },
 
@@ -422,11 +713,13 @@
       this._bottomReached = false;
       this._repStartT = null;
       this._bottomT = null;
+      this._lastTopT = null;
       this._repExtreme = 0;
       this._extremeT = null;
       this._repViolations = {};
       this._calib = null;
       this._repRange = null;
+      this._workingSide = null;
     }
 
     setAspect(width, height) {
@@ -491,6 +784,9 @@
       // キャリブレーション中は計数も指摘もしない
       if (this._needCalibration(metrics, t)) {
         this.phase = PHASE.CALIBRATING;
+        // 静止している時間なので、直後のレップの所要時間の起点になる。
+        // ここを記録しないと1レップ目だけテンポが短く出る。
+        this._lastTopT = t;
         return {
           ok: true, exercise: this.def.id, view: this.view, phase: this.phase,
           repCount: this.repCount, progress: 0, metrics, alerts: [],
@@ -501,6 +797,7 @@
 
       const repEvent = this._updateRepState(metrics, t);
       metrics.repProgress = this._progress;
+      const rejected = this._rejected; this._rejected = null;
 
       let alerts = this._evaluateCheckpoints(metrics, t);
       if (repEvent) alerts = alerts.concat(this._evaluateRepChecks(repEvent, t));
@@ -509,7 +806,7 @@
         ok: true, exercise: this.def.id, view: this.view, phase: this.phase,
         repCount: this.repCount, progress: this._progress, metrics,
         alerts: alerts.slice(0, 1), allAlerts: alerts,
-        repCompleted: repEvent, calibrating: false,
+        repCompleted: repEvent, repRejected: rejected, calibrating: false,
         tracking: { ok: true },
       };
     }
@@ -537,6 +834,21 @@
       let auto = 'left';
       if (ls && rs && lh && rh) auto = (ls.v + lh.v) >= (rs.v + rh.v) ? 'left' : 'right';
 
+      /* 片脚種目の作用脚判定。
+         ブルガリアンスクワットは後ろ足を台に乗せるので、接地している前脚の
+         足首のほうが画面上で低い（yが大きい）。可視性で選ぶ 'auto' では
+         前後どちらが作用脚か決まらないため、別の判定を持つ。
+         差が小さいときは直前の選択を維持してチラつきを防ぐ。 */
+      // 側面視では後ろ脚が体に隠れて可視性が落ちる。閾値を上げすぎると
+      // 判定自体が働かず、可視性で選ぶ 'auto' に落ちて後ろ脚を測ってしまう。
+      const lank = P('ankle', 'left'), rank = P('ankle', 'right');
+      if (lank && rank && lank.v > 0.25 && rank.v > 0.25) {
+        const d = lank.y - rank.y;
+        if (d > 0.04) this._workingSide = 'left';
+        else if (d < -0.04) this._workingSide = 'right';
+      }
+      const working = this._workingSide || auto;
+
       const shoulderMid = P('shoulder', 'mid'), hipMid = P('hip', 'mid');
       const torso = (shoulderMid && hipMid) ? dist(shoulderMid, hipMid) : null;
       // 側面視を成立させるため「肩が片方 + 腰が片方」見えていればよい
@@ -548,16 +860,24 @@
       return {
         P,
         coreVisibility: coreVis,
-        resolveSide: (s) => (!s || s === 'auto') ? auto : s,
+        resolveSide: (s) => (!s || s === 'auto') ? auto : (s === 'workingLeg' ? working : s),
         hipWidth: () => (lh && rh) ? Math.abs(lh.x - rh.x) : null,
         normalizer: (kind) => {
           if (kind === 'torso') return (torso && torso > 0.02) ? torso : null;
           if (kind === 'hipWidth') { const w = (lh && rh) ? Math.abs(lh.x - rh.x) : null; return (w && w > 0.02) ? w : null; }
           return 1;
         },
-        baseline: (key, val) => {
-          if (self._baselines[key] == null) self._baselines[key] = val;
-          return self._baselines[key];
+        // 基準値。最初の数十フレームの中央値を採る。
+        // 1フレーム目だけを使うと、その瞬間の推定誤差がそのまま基準になる。
+        baseline: (key, val, n) => {
+          let rec = self._baselines[key];
+          if (!rec) rec = self._baselines[key] = { s: [], v: val };
+          if (rec.s.length < (n || 20)) {
+            rec.s.push(val);
+            const a = rec.s.slice().sort((x, y) => x - y);
+            rec.v = a[a.length >> 1];
+          }
+          return rec.v;
         },
         history: (windowMs) => {
           const target = t - windowMs;
@@ -623,19 +943,27 @@
 
       const TOP_T = 0.12, BOTTOM_PHASE_T = 0.78, MOVE = 0.004;
       const MIN_PROGRESS = r.minProgress != null ? r.minProgress : 0.5;
-      let completed = null;
+      let completed = null, rejected = null;
 
       if (progress < TOP_T) {
         if (this._bottomReached && this.phase !== PHASE.TOP) {
           const dur = this._repStartT != null ? t - this._repStartT : 0;
           if (dur >= (r.minRepMs || 500)) {
+            const toPeak = (this._extremeT != null && this._repStartT != null)
+              ? Math.round(this._extremeT - this._repStartT) : null;
+            const fromPeak = this._extremeT != null ? Math.round(t - this._extremeT) : null;
             this.repCount++;
             completed = {
               index: this.repCount,
               durationMs: Math.round(dur),
-              eccentricMs: this._extremeT != null && this._repStartT != null ? Math.round(this._extremeT - this._repStartT) : null,
-              concentricMs: this._extremeT != null ? Math.round(t - this._extremeT) : null,
-              romPercent: Math.round(Math.min(this._repExtreme, 1.2) * 100),
+              // toPeak = 休止位置→ピーク / fromPeak = ピーク→休止位置
+              // スクワットは沈むのがエキセントリックだが、カールやプレスは逆。
+              // eccentricFirst:false の種目では入れ替えて意味を合わせる。
+              eccentricMs: r.eccentricFirst === false ? fromPeak : toPeak,
+              concentricMs: r.eccentricFirst === false ? toPeak : fromPeak,
+              toPeakMs: toPeak, fromPeakMs: fromPeak,
+              romPercent: Math.round(Math.min(this._repExtreme, 1) * 100),
+              peakPercent: Math.round(Math.min(this._repExtreme, 1.3) * 100),
               violations: Object.keys(this._repViolations).map(k => ({
                 id: k,
                 count: this._repViolations[k].count,
@@ -644,6 +972,11 @@
               })),
             };
             this.lastRep = completed;
+          } else {
+            // 短すぎるサイクルは反動。黙って捨てると
+            // 「なぜ数えないのか」が伝わらないので理由を返す。
+            rejected = { reason: 'too_fast', durationMs: Math.round(dur),
+                         requiredMs: r.minRepMs || 500 };
           }
           this._bottomReached = false;
           this._repExtreme = 0;
@@ -652,6 +985,10 @@
           this._repStartT = null;
           this._bottomT = null;
         }
+        // 動作開始の基準。progress が上端閾値を下回っていても、既に動き出して
+        // いるフレームで更新すると所要時間が実際より2割ほど短く出る。
+        // 実際に静止しているフレームだけを起点として採用する。
+        if (Math.abs(delta) <= MOVE) this._lastTopT = t;
         this.phase = PHASE.TOP;
       } else {
         if (progress >= MIN_PROGRESS && !this._bottomReached) this._bottomReached = true;
@@ -659,7 +996,9 @@
           this.phase = PHASE.BOTTOM;
         } else if (delta > MOVE) {
           if (this.phase === PHASE.TOP || this.phase === PHASE.IDLE || this.phase === PHASE.CALIBRATING) {
-            this._repStartT = t;
+            // 静止していた最後の時刻を起点にする。閾値を跨いだ時刻を使うと
+            // 所要時間が実際より2割ほど短く出て、minRepMs が名目より厳しく効く。
+            this._repStartT = this._lastTopT != null ? this._lastTopT : t;
             this._repExtreme = progress;
             this._extremeT = t;
             this._repViolations = {};
@@ -670,6 +1009,7 @@
         }
       }
       if (this._repStartT == null && this.phase === PHASE.DESCENDING) this._repStartT = t;
+      this._rejected = rejected;
       return completed;
     }
 
@@ -745,6 +1085,8 @@
         recommendedView: EXERCISES[k].recommendedView,
         supportedViews: EXERCISES[k].supportedViews,
         viewHint: EXERCISES[k].viewHint || null,
+        framing: EXERCISES[k].framing || 'fullBody',
+        phaseLabels: EXERCISES[k].phaseLabels || null,
         safetyNote: EXERCISES[k].safetyNote || null,
       }));
     },

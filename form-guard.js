@@ -31,6 +31,7 @@
     partial_legs:   { sev: 'block', msg: '足元が切れています。カメラを下げるか、離れてください。' },
     partial_head:   { sev: 'block', msg: '頭が切れています。カメラを上に向けてください。' },
     partial_side:   { sev: 'block', msg: '体が画面からはみ出しています。中央に立ってください。' },
+    partial_arms:   { sev: 'block', msg: '腕が画面から出ています。カメラを引いてください。' },
     too_close:      { sev: 'block', msg: '近すぎます。2〜3歩下がってください。' },
     too_far:        { sev: 'warn',  msg: '遠すぎます。1〜2歩近づくと精度が上がります。' },
     view_front_req: { sev: 'block', msg: '正面から撮る設定です。カメラに正対してください。' },
@@ -55,8 +56,10 @@
       this.holdFrames = o.holdFrames != null ? o.holdFrames : 8;    // 問題ありと確定するまで
       this.clearFrames = o.clearFrames != null ? o.clearFrames : 14; // 解消と確定するまで
       this.margin = o.margin != null ? o.margin : 0.02;              // 画面端の許容
-      this.torsoMin = o.torsoMin != null ? o.torsoMin : 0.10;
-      this.torsoMax = o.torsoMax != null ? o.torsoMax : 0.42;
+      // 画角の想定。上半身種目（カール・サイドレイズ等）は足元を映さないのが普通なので
+      // 足の見切れを問題にしない。距離の許容も体幹が大きく写る前提に変える。
+      this.framing = o.framing || 'fullBody';
+      this._applyFraming();
       this.jumpThreshold = o.jumpThreshold != null ? o.jumpThreshold : 0.18;
       // 本当の動作は滑らかで jerk が小さい。追跡ノイズだけが跳ね上がる。
       this.jerkThreshold = o.jerkThreshold != null ? o.jerkThreshold : 0.40;
@@ -70,6 +73,13 @@
       this._lastVel = null;
     }
 
+    _applyFraming() {
+      const up = this.framing === 'upperBody';
+      this.requireLegs = !up;
+      this.torsoMin = up ? 0.15 : 0.10;
+      this.torsoMax = up ? 0.62 : 0.42;
+    }
+    setFraming(f) { this.framing = f || 'fullBody'; this._applyFraming(); this._st = {}; }
     setAspect(w, h) { this.aspect = (w && h) ? w / h : 1; }
     setView(v) { this.view = v; this._st = {}; }
 
@@ -104,11 +114,22 @@
         const inFrame = (p) => p && raw && p.y > m && p.y < 1 - m;
         const nose = raw.NOSE, la = raw.LA, ra = raw.RA;
         if (nose && nose.v > this.minVisibility && nose.y < m) found.add('partial_head');
-        const ankleSeen = (la && la.v > this.minVisibility) || (ra && ra.v > this.minVisibility);
-        if (!ankleSeen || (la && la.y > 1 - m) || (ra && ra.y > 1 - m)) found.add('partial_legs');
+        if (this.requireLegs) {
+          const ankleSeen = (la && la.v > this.minVisibility) || (ra && ra.v > this.minVisibility);
+          if (!ankleSeen || (la && la.y > 1 - m) || (ra && ra.y > 1 - m)) found.add('partial_legs');
+        }
         for (const k of ['LS', 'RS', 'LH', 'RH']) {
           const p = raw[k];
           if (p && p.v > this.minVisibility && (p.x < m || p.x > 1 - m)) { found.add('partial_side'); break; }
+        }
+        // 腕種目では肘・手首が画面外に出ると計測できない
+        if (!this.requireLegs) {
+          for (const k of ['LE', 'RE']) {
+            const p = raw[k];
+            if (p && p.v > this.minVisibility && (p.y < m || p.y > 1 - m || p.x < m || p.x > 1 - m)) {
+              found.add('partial_arms'); break;
+            }
+          }
         }
 
         /* --- 距離 --- */
@@ -160,8 +181,9 @@
          並び順は「原因 → 症状」。近すぎれば手足も切れるが、
          言うべきは「下がってください」であって「足が切れています」ではない。 */
       const issues = [];
-      const codes = ['no_person', 'too_close', 'partial_legs', 'partial_head', 'partial_side',
-                     'view_front_req', 'view_side_req', 'too_far', 'view_diagonal', 'unstable'];
+      const codes = ['no_person', 'too_close', 'partial_legs', 'partial_arms', 'partial_head',
+                     'partial_side', 'view_front_req', 'view_side_req', 'too_far',
+                     'view_diagonal', 'unstable'];
       for (const code of codes) {
         const st = this._st[code] || (this._st[code] = { on: 0, off: 0, active: false });
         if (found.has(code)) { st.on++; st.off = 0; if (st.on >= this.holdFrames) st.active = true; }

@@ -380,6 +380,18 @@
         this._speakAlert(a, t);
       }
 
+      /* --- 反動で不成立になったサイクル --- */
+      if (out.repRejected && out.repRejected.reason === 'too_fast') {
+        const last = this._lastFired['rejected'];
+        if (last == null || t - last > 5000) {
+          this._lastFired['rejected'] = t;
+          this.beeper.warn();
+          this.voice.say('速すぎる。反動だ。今のはカウントしない。',
+            { priority: PRIORITY.FORM, tag: 'rejected', ttlMs: 3000 });
+          this._emit('repRejected', out.repRejected);
+        }
+      }
+
       /* --- rep完了 --- */
       if (out.repCompleted) {
         const rep = out.repCompleted;

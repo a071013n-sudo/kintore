@@ -36,7 +36,10 @@ button,select,input{font:inherit;color:inherit}
 .sub{color:var(--dim);font-size:13px;margin-top:6px}
 .field{margin-top:22px}
 .field>.lbl{display:block;margin-bottom:7px}
-.seg{display:flex;gap:0;border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+.seg{display:flex;gap:0;border:1px solid var(--rule);border-radius:3px;overflow-x:auto;
+     overflow-y:hidden;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+#exSeg button{white-space:nowrap;padding-left:13px;padding-right:13px}
 .seg button{flex:1;background:transparent;border:0;padding:11px 8px;cursor:pointer;font-weight:600;font-size:14px;color:var(--dim)}
 .seg button[aria-pressed=true]{background:var(--panel2);color:var(--ink);box-shadow:inset 0 -2px 0 var(--p20)}
 .seg button:disabled{opacity:.32;cursor:not-allowed}
@@ -305,7 +308,8 @@ function syncSetup() {
     b.setAttribute('aria-pressed', b.dataset.v === CFG.view);
   });
   const hint = (def.viewHint && def.viewHint[CFG.view]) || '';
-  $('#viewHint').textContent = hint + (def.safetyNote ? ' ' + def.safetyNote : '');
+  const frame = def.framing === 'upperBody' ? '' : ' 全身が入るようにしてください。';
+  $('#viewHint').textContent = hint + frame + (def.safetyNote ? ' ' + def.safetyNote : '');
 }
 syncSetup();
 
@@ -445,6 +449,8 @@ function buildSession() {
   engine.setAspect(vid.videoWidth, vid.videoHeight);
   guard = new FormGuardKit.SetupGuard({ view: CFG.view });
   guard.setAspect(vid.videoWidth, vid.videoHeight);
+  // 上半身種目は足元を映さないのが普通。足の見切れを問題にしない
+  guard.setFraming((EXS.find(x => x.id === CFG.exercise) || {}).framing || 'fullBody');
   stills = new FormVisionKit.KeyframeRecorder({ video: vid, mirrored: CFG.mirror && facing === 'user' });
   // Gemini は動画を受け取れる。静止画では落ちる情報（切り返しの速さ、
   // バーの軌跡、崩れが始まる瞬間）を渡せるのでクリップも録る。
@@ -526,15 +532,21 @@ function onResults(res) {
   coach.handle(out);
 
   $('#repN').textContent = out.repCount;
-  setPhase(out.calibrating ? '基準を取得中' :
-    ({ descending:'下降', bottom:'最下点', ascending:'挙上', top:'立位',
-       idle:'待機', lost:'追跡ロスト' }[out.phase] || out.phase));
+  setPhase(out.calibrating ? '基準を取得中' : phaseLabel(out.phase));
   const rep = engine.repDef;
   const mp = rep.minProgress != null ? rep.minProgress : .35;
   const p = Math.min(1, out.progress || 0);
   setGauge(p * 100, p >= .95 ? 'deep' : (p >= mp ? '' : 'shallow'));
 }
 
+/* 局面の呼び名は種目で変わる。プレスの「下降」は実際には挙上なので、
+   種目定義に phaseLabels があればそれを使う。 */
+const PHASE_JA = { descending:'下降', bottom:'最下点', ascending:'挙上', top:'立位',
+                   idle:'待機', lost:'追跡ロスト', calibrating:'基準取得' };
+function phaseLabel(p) {
+  const custom = engine && engine.def && engine.def.phaseLabels;
+  return (custom && custom[p]) || PHASE_JA[p] || p;
+}
 function setPhase(s) { $('#phase').textContent = s; }
 function setGauge(pct, cls) {
   const f = $('#gfill'); f.style.height = pct + '%'; f.className = cls || '';
