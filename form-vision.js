@@ -372,10 +372,23 @@
   /* =======================================================================
    * VisionCoach
    * ===================================================================== */
+  /* モデル名は頻繁に入れ替わる（旧名は 404 になる）。
+     ここの既定値はあくまで初期値で、listModels() で実際に使えるものを
+     問い合わせて差し替えられるようにしてある。 */
   const DEFAULTS = {
-    anthropic: { endpoint: 'https://api.anthropic.com/v1/messages', model: 'claude-sonnet-4-6' },
-    gemini:    { endpoint: 'https://generativelanguage.googleapis.com/v1beta/models', model: 'gemini-2.5-flash' },
+    anthropic: {
+      endpoint: 'https://api.anthropic.com/v1/messages',
+      listUrl: 'https://api.anthropic.com/v1/models?limit=100',
+      model: 'claude-sonnet-4-6',
+    },
+    gemini: {
+      endpoint: 'https://generativelanguage.googleapis.com/v1beta/models',
+      listUrl: 'https://generativelanguage.googleapis.com/v1beta/models?pageSize=200',
+      model: 'gemini-3.6-flash',
+    },
   };
+  // 講評に使えないモデルを除く（埋め込み・音声・画像生成など）
+  const MODEL_EXCLUDE = /embedding|aqa|tts|imagen|image-gen|veo|lyria|native-audio|robotics|live-/i;
 
   class VisionCoach {
     constructor(opts) {
@@ -384,6 +397,7 @@
       const d = DEFAULTS[this.provider] || DEFAULTS.anthropic;
       this.apiKey = opts.apiKey || null;
       this.endpoint = opts.endpoint || d.endpoint;
+      this.listUrl = opts.listUrl || d.listUrl;
       this.model = opts.model || d.model;
       this.maxTokens = opts.maxTokens || 1200;
       this.timeoutMs = opts.timeoutMs || 60000;   // 動画は解析に時間がかかる
@@ -393,10 +407,11 @@
       this.fetchImpl = opts.fetch || (global.fetch ? global.fetch.bind(global) : null);
       this.onStatus = opts.onStatus || null;
     }
-    setProvider(p, key) {
+    setProvider(p, key, model) {
       this.provider = p;
       const d = DEFAULTS[p] || DEFAULTS.anthropic;
-      this.endpoint = d.endpoint; this.model = d.model;
+      this.endpoint = d.endpoint; this.listUrl = d.listUrl;
+      this.model = model || d.model;
       if (key !== undefined) this.apiKey = key || null;
     }
     _status(s, d) { if (this.onStatus) { try { this.onStatus(s, d); } catch (e) {} } }
@@ -425,7 +440,8 @@
         return {
           systemInstruction: { parts: [{ text: systemPrompt(att.mode === 'video') }] },
           contents: [{ role: 'user', parts }],
-          generationConfig: { maxOutputTokens: this.maxTokens, temperature: 0.4,
+          // temperature / top_p / top_k は Gemini 3.x で非推奨。既定のまま触らない
+          generationConfig: { maxOutputTokens: this.maxTokens,
             responseMimeType: 'application/json', responseSchema: RESPONSE_SCHEMA },
         };
       }
@@ -438,6 +454,56 @@
         system: systemPrompt(false), messages: [{ role: 'user', content }] };
     }
 
+    /** このキーで実際に使えるモデルを問い合わせる。
+     *  モデル名は入れ替わるので、固定値に頼らずここから選ばせる。 */
+    async listModels() {
+      if (!this.fetchImpl) return { ok: false, reason: 'no_fetch' };
+      if (!this.apiKey) return { ok: false, reason: 'no_key' };
+      const h = this._headers();
+      const out = [];
+      try {
+        if (this.provider === 'gemini') {
+          let url = this.listUrl;
+          for (let page = 0; page < 3 && url; page++) {
+            const res = await this.fetchImpl(url, { method: 'GET', headers: h });
+            if (!res.ok) {
+              let d = ''; try { d = (await res.text()).slice(0, 160); } catch (e) {}
+              return { ok: false, reason: 'http_' + res.status, detail: d };
+            }
+            const j = await res.json();
+            for (const m of (j.models || [])) {
+              const id = String(m.name || '').replace(/^models\//, '');
+              const methods = m.supportedGenerationMethods;
+              if (Array.isArray(methods) && methods.indexOf('generateContent') < 0) continue;
+              if (!id || MODEL_EXCLUDE.test(id)) continue;
+              out.push({ id, label: m.displayName || id });
+            }
+            url = j.nextPageToken
+              ? this.listUrl + '&pageToken=' + encodeURIComponent(j.nextPageToken) : null;
+          }
+        } else {
+          const res = await this.fetchImpl(this.listUrl, { method: 'GET', headers: h });
+          if (!res.ok) {
+            let d = ''; try { d = (await res.text()).slice(0, 160); } catch (e) {}
+            return { ok: false, reason: 'http_' + res.status, detail: d };
+          }
+          const j = await res.json();
+          for (const m of (j.data || [])) {
+            const id = m.id || '';
+            if (!id || MODEL_EXCLUDE.test(id)) continue;
+            out.push({ id, label: m.display_name || id });
+          }
+        }
+      } catch (e) {
+        return { ok: false, reason: 'cors_or_network', detail: e && e.message };
+      }
+      if (!out.length) return { ok: false, reason: 'empty' };
+      // 講評向きの軽量モデルを上に寄せる
+      const rank = (m) => (/flash|haiku/i.test(m.id) ? 0 : /sonnet/i.test(m.id) ? 1 : 2);
+      out.sort((a, b) => rank(a) - rank(b) || (a.id < b.id ? 1 : -1));
+      return { ok: true, models: out };
+    }
+
     /** ブラウザから直接叩けるか（CORS疎通）を最小コストで確認する */
     async probe() {
       if (!this.fetchImpl) return { ok: false, reason: 'no_fetch' };
@@ -448,8 +514,14 @@
       try {
         const res = await this.fetchImpl(this._url(),
           { method: 'POST', headers: this._headers(), body: JSON.stringify(body) });
-        if (res.ok) return { ok: true };
+        if (res.ok) return { ok: true, model: this.model };
         let d = ''; try { d = (await res.text()).slice(0, 160); } catch (e) {}
+        // 404 はモデル名が存在しない、の意味。CORS自体は通っている
+        if (res.status === 404) {
+          const l = await this.listModels();
+          return { ok: false, reason: 'model_not_found', detail: d,
+                   corsOk: true, models: l.ok ? l.models : null };
+        }
         return { ok: false, reason: 'http_' + res.status, detail: d };
       } catch (e) {
         // CORSで弾かれると TypeError: Failed to fetch になり、詳細は取得できない

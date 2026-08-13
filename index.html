@@ -236,6 +236,12 @@ dialog::backdrop{background:rgba(8,10,9,.75)}
           <button class="mini" id="probeBtn">接続テスト</button>
           <span id="probeMsg" class="hintline" style="margin:0"></span>
         </div>
+        <div id="modelWrap" hidden style="margin-top:11px">
+          <span class="lbl">モデル</span>
+          <select id="sModel" style="width:100%;margin-top:6px;background:#141816;
+            border:1px solid var(--rule);border-radius:2px;padding:9px 11px;
+            font-family:var(--data);font-size:13px"></select>
+        </div>
         <p class="hintline" id="provHint"></p>
       </div>
     </div>
@@ -262,13 +268,14 @@ if (missing.length) {
 
 /* ── 設定の保存 ────────────────────────────────────────── */
 const CFG = Object.assign(
-  { voice: true, beep: true, mirror: true, provider: '', keys: {},
+  { voice: true, beep: true, mirror: true, provider: '', keys: {}, models: {},
     exercise: 'squat', view: 'front' },
   JSON.parse(localStorage.getItem('formcoach') || '{}'));
 if (CFG.key) { CFG.keys = CFG.keys || {}; CFG.keys.anthropic = CFG.key;   // 旧形式からの移行
                CFG.provider = CFG.provider || 'anthropic'; delete CFG.key; }
-CFG.keys = CFG.keys || {};
+CFG.keys = CFG.keys || {}; CFG.models = CFG.models || {};
 const curKey = () => (CFG.provider ? (CFG.keys[CFG.provider] || '') : '');
+const curModel = () => (CFG.provider ? (CFG.models[CFG.provider] || '') : '');
 const saveCfg = () => localStorage.setItem('formcoach', JSON.stringify(CFG));
 
 /* ── 画面遷移 ──────────────────────────────────────────── */
@@ -318,6 +325,17 @@ function syncProv() {
     $('#provHint').textContent = PROV_HINT[pendingProv];
   }
   $('#probeMsg').textContent = '';
+  fillModels(CFG.models[pendingProv] ? [{ id: CFG.models[pendingProv], label: CFG.models[pendingProv] }] : null,
+             CFG.models[pendingProv]);
+}
+/* モデル名は入れ替わるので固定しない。キーで使えるものを問い合わせて選ばせる */
+function fillModels(list, selected) {
+  const w = $('#modelWrap'), sel = $('#sModel');
+  if (!list || !list.length) { w.hidden = true; sel.innerHTML = ''; return; }
+  sel.innerHTML = list.map(m =>
+    '<option value="' + m.id + '"' + (m.id === selected ? ' selected' : '') + '>'
+    + (m.label && m.label !== m.id ? m.label + '  (' + m.id + ')' : m.id) + '</option>').join('');
+  w.hidden = false;
 }
 $('#provSeg').querySelectorAll('button').forEach(b => b.onclick = () => {
   if (pendingProv) CFG.keys[pendingProv] = $('#sKey').value.trim();
@@ -333,7 +351,10 @@ $('#setClose').onclick = () => $('#setDlg').close();
 $('#setSave').onclick = () => {
   CFG.voice = $('#sVoice').checked; CFG.beep = $('#sBeep').checked;
   CFG.mirror = $('#sMirror').checked;
-  if (pendingProv) CFG.keys[pendingProv] = $('#sKey').value.trim();
+  if (pendingProv) {
+    CFG.keys[pendingProv] = $('#sKey').value.trim();
+    if ($('#sModel').value) CFG.models[pendingProv] = $('#sModel').value;
+  }
   CFG.provider = pendingProv;
   saveCfg(); applyCfg(); $('#setDlg').close();
 };
@@ -347,9 +368,29 @@ $('#probeBtn').onclick = async () => {
   msg.className = 'hintline'; msg.style.margin = '0';
   if (!key) { msg.textContent = 'キーを入力してください'; return; }
   msg.textContent = '確認中…';
-  const v = new FormVisionKit.VisionCoach({ provider: pendingProv, apiKey: key });
+  const v = new FormVisionKit.VisionCoach({ provider: pendingProv, apiKey: key,
+    model: CFG.models[pendingProv] || undefined });
   const r = await v.probe();
-  if (r.ok) { msg.textContent = '接続できました'; msg.className = 'hintline probe-ok'; return; }
+
+  if (r.ok) {
+    msg.textContent = '接続できました';
+    msg.className = 'hintline probe-ok';
+    const l = await v.listModels();          // 選べるモデルを出しておく
+    if (l.ok) fillModels(l.models, r.model || l.models[0].id);
+    return;
+  }
+  // 404 はモデル名が古いだけ。CORSは通っているので候補を出して選ばせる
+  if (r.reason === 'model_not_found') {
+    if (r.models && r.models.length) {
+      fillModels(r.models, r.models[0].id);
+      msg.textContent = '通信はできました。モデル名が古いので下から選び直してください';
+      msg.className = 'hintline probe-ok';
+    } else {
+      msg.textContent = 'モデル名が見つかりません（一覧も取得できませんでした）';
+      msg.className = 'hintline probe-ng';
+    }
+    return;
+  }
   const M = {
     cors_or_network: 'ブラウザから直接呼べませんでした（CORS遮断か通信エラー）',
     http_400: 'キーが正しくない可能性があります',
@@ -371,7 +412,7 @@ function applyCfg() {
   if (stills) stills.mirrored = CFG.mirror && facing === 'user';
   vid.style.transform = (CFG.mirror && facing === 'user') ? 'scaleX(-1)' : '';
   ov.style.transform = vid.style.transform;
-  if (vision) vision.setProvider(CFG.provider || 'anthropic', curKey());
+  if (vision) vision.setProvider(CFG.provider || 'anthropic', curKey(), curModel());
 }
 
 /* ── 開始 ─────────────────────────────────────────────── */
@@ -409,7 +450,8 @@ function buildSession() {
   // バーの軌跡、崩れが始まる瞬間）を渡せるのでクリップも録る。
   clips = (CFG.provider === 'gemini')
     ? new FormVisionKit.ClipRecorder({ stream }) : null;
-  vision = new FormVisionKit.VisionCoach({ provider: CFG.provider || 'anthropic', apiKey: curKey() });
+  vision = new FormVisionKit.VisionCoach({ provider: CFG.provider || 'anthropic',
+    apiKey: curKey(), model: curModel() || undefined });
   coach = new FormCoachKit.FormCoach(engine, {
     restMs: 8000,
     onEvent: (type, d) => { if (type === 'alert') flashCue(d); },
@@ -635,6 +677,7 @@ function renderAIError(r) {
     timeout:'応答がありませんでした。', no_fetch:'この環境では講評を利用できません。',
     no_key:'APIキーが未設定です。', no_media:'送れる映像がありませんでした。',
     cors_or_network:'ブラウザから直接呼べませんでした。設定の「接続テスト」で確認してください。' };
+  if (String(r.reason) === 'http_404') m.http_404 = 'モデル名が無効です。設定の「接続テスト」でモデルを選び直してください。';
   const msg = m[r.reason] || (String(r.reason).startsWith('http_')
     ? 'APIから ' + r.reason.slice(5) + ' が返りました。APIキーを確認してください。'
     : '講評を取得できませんでした。');
